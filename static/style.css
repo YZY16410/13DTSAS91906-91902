@@ -1,0 +1,122 @@
+:root {
+    --mytogs-blue: #0b2239;
+    --pool-cyan: #00aedb;
+    --light-gray: #f4f4f4;
+    --white: #ffffff;
+    --border: #cccccc;
+}
+
+body {
+    font-family: 'Manrope', sans-serif;
+    background-color: var(--light-gray);
+    color: #333;
+    margin: 0;
+    padding: 0;
+}
+
+.container {
+    width: 80%;
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+nav {
+    background-color: var(--mytogs-blue);
+    padding: 15px 0;
+}
+
+nav .container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.navbar-brand {
+    color: var(--white);
+    font-size: 24px;
+    font-weight: 800;
+}
+
+.navbar-links a {
+    color: var(--white);
+    text-decoration: none;
+    margin-left: 20px;
+}
+
+.navbar-links a:hover {
+    color: var(--pool-cyan);
+}
+
+header {
+    text-align: center;
+    padding: 30px 0;
+}
+
+h1 {
+    color: var(--mytogs-blue);
+    margin: 0;
+}
+
+h2 {
+    color: var(--pool-cyan);
+    font-weight: 400;
+}
+
+main {
+    background-color: var(--white);
+    padding: 25px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    min-height: 200px;
+}
+
+.myform {
+    width: 100%;
+    max-width: 400px;
+    margin: 20px auto;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-label {
+    font-weight: 600;
+    margin-bottom: 5px;
+    display: block;
+}
+
+input[type="text"],
+input[type="email"],
+input[type="password"] {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+}
+
+input[type="submit"] {
+    background-color: var(--mytogs-blue);
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    width: 100%;
+    font-weight: 600;
+}
+
+input[type="submit"]:hover {
+    background-color: var(--pool-cyan);
+}
+
+strong em {
+    display: block;
+    padding: 10px;
+    background-color: #e1f5fe;
+    border-left: 5px solid var(--pool-cyan);
+}
+
+p {
+    margin-top: 20px;
+}
