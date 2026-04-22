@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="DataSourceManagerImpl" format="xml" multifile-model="true">
-    <data-source source="LOCAL" name="swim" uuid="d537a220-eeb7-42d2-b882-12ab80773049">
+    <data-source source="LOCAL" name="swim" uuid="be0ce515-f79e-4183-9309-2164dd5eea83">
       <driver-ref>sqlite.xerial</driver-ref>
       <synchronize>true</synchronize>
       <jdbc-driver>org.sqlite.JDBC</jdbc-driver>
-      <jdbc-url>jdbc:sqlite:$PROJECT_DIR$/swim</jdbc-url>
+      <jdbc-url>jdbc:sqlite:C:\Users\23412\PycharmProjects\13DTSAS91906-91902\swim</jdbc-url>
       <working-dir>$ProjectFileDir$</working-dir>
     </data-source>
   </component>
