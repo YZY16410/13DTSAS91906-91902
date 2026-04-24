@@ -40,7 +40,7 @@ def render_homepage():
 @app.route('/login', methods = ['POST','GET'])
 def render_login_page():
     if is_logged_in():
-        return redirect("/menu/1")
+        return redirect("/")
 
     if request.method == 'POST':
         email = request.form['user_email'].strip().lower()
