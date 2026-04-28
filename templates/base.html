@@ -16,8 +16,11 @@
         <div class="navbar-brand">SwimSync.</div>
         <div class="navbar-links">
             <a href="/">Home</a>
-            <a href="/menu">Menu</a>
-            <a href="/login">Login</a>
+            {% if logged_in == True%}
+                <a href="/logout">Logout</a>
+            {% else %}
+                <a href="/login">Login</a>
+            {% endif %}
             <a href="/contact">Contact Us</a>
         </div>
     </div>

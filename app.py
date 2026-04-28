@@ -37,6 +37,8 @@ def connection_database(db_file):
 def render_homepage():
     return render_template('home.html', logged_in = is_logged_in())
 
+
+
 @app.route('/login', methods = ['POST','GET'])
 def render_login_page():
     if is_logged_in():
