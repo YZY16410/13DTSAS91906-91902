@@ -1,7 +1,8 @@
-from flask import Flask, render_template, request, redirect, session
+from flask import Flask, render_template, request, redirect, session, url_for, flash
 import sqlite3
 from sqlite3 import Error
 from flask_bcrypt import Bcrypt
+from datetime import datetime
 
 
 DATABASE = "swim"
@@ -37,12 +38,24 @@ def connection_database(db_file):
 def render_homepage():
     return render_template('home.html', logged_in = is_logged_in())
 
+@app.route('/booking', methods = ['GET'])
+def render_booking_page():
+    if not is_logged_in():
+        return redirect("/login?error=you+must+be+logged")
+    return render_template('booking.html', logged_in = is_logged_in())
+
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for("render_homepage"))
+
 
 
 @app.route('/login', methods = ['POST','GET'])
 def render_login_page():
     if is_logged_in():
-        return redirect("/")
+        return redirect(url_for("render_homepage"))
 
     if request.method == 'POST':
         email = request.form['user_email'].strip().lower()
@@ -70,7 +83,7 @@ def render_login_page():
         session['user_id'] = user_id
         session['first_name'] = first_name
         print(session)
-        return redirect("/")
+        return redirect(url_for("render_homepage"))
 
     return render_template('login.html', logged_in = is_logged_in())
 
@@ -98,7 +111,7 @@ def render_signup_page():
         cur.execute(query_insert, (fname, lname, email, hashed_password, role))
         con.commit()
         con.close()
-        return(render_template('login.html'))
+        return redirect(url_for("render_login_page"))
 
     return render_template('signup.html', logged_in = is_logged_in())
 
