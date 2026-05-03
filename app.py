@@ -91,8 +91,8 @@ def render_login_page():
 def render_signup_page():
     if request.method == 'POST':
         role = request.form.get('role')
-        fname = request.form.get('user_fname').title().strip()
-        lname = request.form.get('user_lname').title().strip()
+        fname = request.form.get('user_fname')
+        lname = request.form.get('user_lname')
         email = request.form.get('user_email').lower().strip()
         password = request.form.get('user_password')
         confirm_password = request.form.get('user_confirm_password')
