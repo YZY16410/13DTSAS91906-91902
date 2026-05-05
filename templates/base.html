@@ -17,7 +17,7 @@
         <div class="navbar-links">
             <a href="/">Home</a>
             {% if logged_in == True%}
-                <a href="/logout">Logout</a>
+                <a href="/logout">Logout ({{session.first_name}})</a>
             {% else %}
                 <a href="/login">Login</a>
             {% endif %}
