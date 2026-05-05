@@ -11,6 +11,8 @@ bcrypt = Bcrypt(app)
 app.secret_key = "helloworld"
 
 
+
+
 def is_logged_in():
     if session.get("user_id") is None:
         print("Not logged in")
@@ -18,6 +20,9 @@ def is_logged_in():
     else:
         print("Successfully logged in")
         return True
+
+
+
 
 def connection_database(db_file):
     """
@@ -34,15 +39,99 @@ def connection_database(db_file):
     return None
 
 
+
+
 @app.route('/')
 def render_homepage():
     return render_template('home.html', logged_in = is_logged_in())
 
+
+
+
+def generate_time_slots():
+    slots = []
+    for i in range(6,22):
+        slots.append(f"{i:02d}:00")
+    return slots
+
+
+
+
 @app.route('/booking', methods = ['GET'])
 def render_booking_page():
     if not is_logged_in():
-        return redirect("/login?error=you+must+be+logged")
-    return render_template('booking.html', logged_in = is_logged_in())
+        return redirect("/login?error=you+must+be+logged+in")
+    
+    available_lanes = [0,1,2,3,4,5,6,7,8,9]
+    times_slots = generate_time_slots()
+    
+    return render_template('booking.html', logged_in = is_logged_in(), available_lane = available_lanes, times_slots = times_slots)
+    
+    
+    
+    
+@app.route('/submit-booking', methods = ['POST'])
+def submit_booking():
+    if not is_logged_in():
+        return redirect(url_for('render_login_page'))
+    
+    lane_id = request.form['lane_id']
+    booking_date = request.form['booking_date']
+    start_time = request.form['start_time']
+    duration = int(request.form['duration'])
+    user_id = request.form['user_id']
+    
+    
+    if duration not in (1,1,5,2):
+        return flash("Only 1 to 2 hr bookings")
+    
+    try:
+        booking_date_obj = booking_date.strptime(booking_date, "%Y-%m-%d")
+        if booking_date_obj < datetime.today:
+            flash("Error: Cannot book past dates")
+            return redirect(url_for("render_booking_page"))
+            
+    except ValueError:
+        flash("Error: Invalid date")
+        return redirect(url_for("render_booking_page"))
+    
+    start_hr = int(start_time[:2])
+    end_hr = start_time + duration
+    end_time = f"{end_hr:02d}:00"
+    
+    if end_hr > 21:
+        flash("Error: Cannot book past 9pm")
+        return redirect(url_for("render_booking_page"))
+    
+    time_slot = f"{start_time}-{end_time}"
+    
+    conn = connection_database(DATABASE)
+    cur  = conn.cursor()
+    query = ('''
+             SELECT * FROM bookings
+            WHERE lane_id = ? AND booking_date = ? AND time_slot == ?
+            ''')
+    
+    cur.execute(query, (lane_id, booking_date, time_slot))
+    
+    if cur.fetchone():
+        flash("Error: Lane already booked")
+        return redirect(url_for("render_booking_page"))
+    
+    query_insert = ('''
+                    INSERT INTO bookings (user_id, lane_id, booking_date, time_slot)
+                    VALUES (?,?,?,?)
+                    ''')
+    cur.execute(query_insert)
+    conn.commit()
+    cur.close()
+    conn.close()
+    
+    flash("Success! Booking created successfully")
+    return redirect(url_for(render_booking_page))
+    
+    
+    
 
 
 @app.route('/logout')
@@ -87,6 +176,9 @@ def render_login_page():
 
     return render_template('login.html', logged_in = is_logged_in())
 
+
+
+
 @app.route('/signup', methods = ['POST','GET'])
 def render_signup_page():
     if request.method == 'POST':
@@ -114,6 +206,9 @@ def render_signup_page():
         return redirect(url_for("render_login_page"))
 
     return render_template('signup.html', logged_in = is_logged_in())
+
+
+
 
 @app.route('/contact')
 def render_contact_page():
