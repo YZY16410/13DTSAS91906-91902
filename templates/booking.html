@@ -18,6 +18,19 @@
     </div>
 
     <div class="form-group">
+        <div class="form-label"> Lane Number: </div>
+        <div class="form-element">
+            <select name = "lane_id" requried>
+                {% for lane in available_lane %}
+                    <option value = "{{ lane }}">{{ lane }}</option
+                {% else %}
+                    <option value = "">No Lanes Available</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+
+    <div class="form-group">
         <div class="form-label"> Date: </div>
         <div class="form-element">
             <input type="date" name="booking_date" required>
@@ -27,9 +40,11 @@
     <div class="form-group">
         <div class="form-label"> Start Time: </div>
         <div class="form-element">
-            <select name="start_time" required>
-                {% for slot in time_slots %}
-                <option value="{{ slot }}">{{ slot }}</option>
+            <select id = "start_time" name="start_time" required>
+                {% for time in time_slots %}
+                    <option value="{{ time }}">{{ time }}</option>
+                {% else %}
+                    <option value = "">No times available</option>
                 {% endfor %}
             </select>
         </div>

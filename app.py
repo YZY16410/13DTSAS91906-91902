@@ -64,8 +64,9 @@ def render_booking_page():
     
     available_lanes = [0,1,2,3,4,5,6,7,8,9]
     times_slots = generate_time_slots()
+    print(f"available time slots: {times_slots}")
     
-    return render_template('booking.html', logged_in = is_logged_in(), available_lane = available_lanes, times_slots = times_slots)
+    return render_template('booking.html', logged_in = is_logged_in(), available_lane = available_lanes, time_slots = times_slots)
     
     
     
@@ -76,17 +77,18 @@ def submit_booking():
         return redirect(url_for('render_login_page'))
     
     lane_id = request.form['lane_id']
-    booking_date = request.form['booking_date']
+    booking_date = request.form['booking_date'] 
     start_time = request.form['start_time']
     duration = int(request.form['duration'])
     user_id = request.form['user_id']
     
     
     if duration not in (1,1,5,2):
-        return flash("Only 1 to 2 hr bookings")
+        flash("Only 1 to 2 hr bookings")
+        return redirect(url_for("render_booking_page"))
     
     try:
-        booking_date_obj = booking_date.strptime(booking_date, "%Y-%m-%d")
+        booking_date_obj = datetime.strptime(booking_date, "%Y-%m-%d")
         if booking_date_obj < datetime.today:
             flash("Error: Cannot book past dates")
             return redirect(url_for("render_booking_page"))
@@ -96,7 +98,7 @@ def submit_booking():
         return redirect(url_for("render_booking_page"))
     
     start_hr = int(start_time[:2])
-    end_hr = start_time + duration
+    end_hr = start_hr + duration
     end_time = f"{end_hr:02d}:00"
     
     if end_hr > 21:
@@ -122,7 +124,7 @@ def submit_booking():
                     INSERT INTO bookings (user_id, lane_id, booking_date, time_slot)
                     VALUES (?,?,?,?)
                     ''')
-    cur.execute(query_insert)
+    cur.execute(query_insert, (user_id, lane_id, booking_date, time_slot))
     conn.commit()
     cur.close()
     conn.close()
