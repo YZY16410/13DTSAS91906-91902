@@ -57,6 +57,33 @@ def generate_time_slots():
 
 
 
+@app.route('/dashboard', methods = ['GET'])
+def render_dashboard_page():
+    if not is_logged_in():
+        flash("Error You must be logged in")
+        return redirect(url_for("render_login_page"))
+    
+    user_id = session.get("user_id")
+    print(f"session user_id:{user_id}")
+    
+    
+    conn = connection_database(DATABASE)
+    cur = conn.cursor()
+    query = ('''
+            SELECT * FROM bookings
+            WHERE user_id = ?
+        ''')
+    
+    cur.execute(query,(user_id,))
+    user_bookings = cur.fetchall()
+    print(user_bookings)
+    
+    
+    return render_template('dashboard.html', logged_in = is_logged_in(), )
+    
+
+
+
 
 @app.route('/booking', methods = ['GET'])
 def render_booking_page():
