@@ -19,6 +19,7 @@ def is_logged_in():
         return False
     else:
         print("Successfully logged in")
+        print(session.get("user_id"))
         return True
 
 
@@ -60,7 +61,8 @@ def generate_time_slots():
 @app.route('/booking', methods = ['GET'])
 def render_booking_page():
     if not is_logged_in():
-        return redirect("/login?error=you+must+be+logged+in")
+        flash("Error You must be logged in")
+        return redirect(url_for("render_login_page"))
     
     available_lanes = [0,1,2,3,4,5,6,7,8,9]
     times_slots = generate_time_slots()
@@ -80,16 +82,18 @@ def submit_booking():
     booking_date = request.form['booking_date'] 
     start_time = request.form['start_time']
     duration = int(request.form['duration'])
-    user_id = request.form['user_id']
+    user_id = session.get("user_id")
     
     
-    if duration not in (1,1,5,2):
+    if duration not in (1,1.5,2):
         flash("Only 1 to 2 hr bookings")
         return redirect(url_for("render_booking_page"))
     
     try:
         booking_date_obj = datetime.strptime(booking_date, "%Y-%m-%d")
-        if booking_date_obj < datetime.today:
+        today_date = datetime.today()
+        print(today_date)
+        if booking_date_obj < today_date:
             flash("Error: Cannot book past dates")
             return redirect(url_for("render_booking_page"))
             
@@ -130,7 +134,7 @@ def submit_booking():
     conn.close()
     
     flash("Success! Booking created successfully")
-    return redirect(url_for(render_booking_page))
+    return redirect(url_for("render_booking_page"))
     
     
     
@@ -214,7 +218,7 @@ def render_signup_page():
 
 @app.route('/contact')
 def render_contact_page():
-    return render_template('contact.html')
+    return render_template('contact.html', logged_in = is_logged_in())
 
 
 
