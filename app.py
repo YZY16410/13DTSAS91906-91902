@@ -57,7 +57,17 @@ def generate_time_slots():
 
 
 
-@app.route('/dashboard', methods = ['GET'])
+# @app.route('/more-info', method = ['POST'])
+# def render_more_info_page():
+#     # conn = connection_database(DATABASE)
+#     # cur = conn.cursor()
+#     # query = ('''
+#     #     ''')
+
+#     # return render_template('')
+
+
+@app.route('/dashboard')
 def render_dashboard_page():
     if not is_logged_in():
         flash("Error You must be logged in")
@@ -79,7 +89,7 @@ def render_dashboard_page():
     print(user_bookings)
     
     
-    return render_template('dashboard.html', logged_in = is_logged_in(), )
+    return render_template('dashboard.html', logged_in = is_logged_in(), user_bookings = user_bookings)
     
 
 
@@ -112,7 +122,7 @@ def submit_booking():
     user_id = session.get("user_id")
     
     
-    if duration not in (1,1.5,2):
+    if duration not in (1,2):
         flash("Only 1 to 2 hr bookings")
         return redirect(url_for("render_booking_page"))
     
@@ -142,7 +152,7 @@ def submit_booking():
     cur  = conn.cursor()
     query = ('''
              SELECT * FROM bookings
-            WHERE lane_id = ? AND booking_date = ? AND time_slot == ?
+            WHERE lane_id = ? AND booking_date = ? AND time_slot = ?
             ''')
     
     cur.execute(query, (lane_id, booking_date, time_slot))

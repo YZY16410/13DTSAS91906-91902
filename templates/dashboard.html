@@ -4,6 +4,39 @@
 
 {% block main %}
 
-<strong><em>Check your bookings, Manage swimmers, Create your Profile!</em></strong>
+<div class = "dashboard-header"> 
+    <strong><em>Check your bookings, Manage swimmers, Create your Profile!</em></strong>
+</div>
+
+<h3>Your Current Lane Bookings</h3>
+
+{% if user_bookings %}
+    <table class = "booking-table">
+        <thead>
+            <tr>
+                <th>Booking ID</th>
+                <th>Lane</th>
+                <th>Date</th>
+                <th>Time Slot</th>
+                <th>Booking Info</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for booking in user_bookings %}
+            <tr>
+                <td>{{ booking[0] }}</td>
+                <td>{{ booking[2] }}</td>
+                <td>{{ booking[3] }}</td>
+                <td>{{ booking[4] }}</td>
+                <td><a>More Info</a></td>
+
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% else %}
+    <p>You have no active bookings. <a href = "/booking">Book a Lane here.</a></p>
+{% endif %}
+
 
 {% endblock %}
