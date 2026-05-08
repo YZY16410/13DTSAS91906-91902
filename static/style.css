@@ -130,7 +130,6 @@ p {
 .booking-table th, .booking-table td {
     padding: 12px;
     text-align: left;
-    border-bottom: 1px solid var(--border);
 }
 
 .booking-table th {
@@ -140,4 +139,14 @@ p {
 
 .booking-table tr:hover {
     background-color: #f1f1f1;
+}
+
+.dashboard-links a {
+    color: #333;
+    text-decoration: none;
+    margin-left: 20px;
+}
+
+.dashboard-links a:hover {
+    color: var(--pool-cyan);
 }

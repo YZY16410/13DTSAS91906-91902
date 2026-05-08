@@ -4,38 +4,48 @@
 
 {% block main %}
 
-<div class = "dashboard-header"> 
-    <strong><em>Check your bookings, Manage swimmers, Create your Profile!</em></strong>
-</div>
 
-<h3>Your Current Lane Bookings</h3>
+{% if role == "swimmer" %}
+    <div class = "dashboard-header"> 
+        <strong><em>Check your bookings, Check your times, Make your profile!</em></strong>
+    </div>
 
-{% if user_bookings %}
-    <table class = "booking-table">
-        <thead>
-            <tr>
-                <th>Booking ID</th>
-                <th>Lane</th>
-                <th>Date</th>
-                <th>Time Slot</th>
-                <th>Booking Info</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for booking in user_bookings %}
-            <tr>
-                <td>{{ booking[0] }}</td>
-                <td>{{ booking[2] }}</td>
-                <td>{{ booking[3] }}</td>
-                <td>{{ booking[4] }}</td>
-                <td><a>More Info</a></td>
+    <div class = "dashboard-links">
+        <h3><a href = "/dashboard/swim-results">My Swim Results</a></h3>
+        <h3><a href = "/dashboard/user-bookings">My Current Lane Bookings</a></h3>
 
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-{% else %}
-    <p>You have no active bookings. <a href = "/booking">Book a Lane here.</a></p>
+    </div>
+
+
+
+{% endif %}
+
+
+
+{% if role == "coach" %}
+
+    <div class = "dashboard-links">
+        <h3><a href = "/dashboard/manage-team">Manage Team</a></h3>
+        <h3>Access swimmer progress</h3>
+        <h3><a href = "/dashboard/user-bookings">View your Bookings</a></h3>
+    </div>
+
+
+{% endif %}
+
+
+
+{% if role == "admin" %}
+
+    <h3>Admin Dashboard</h3>
+    <strong><em>Moderate and Check User Bookings, Enter and Remove times,  </em></strong>
+
+    <div class = "dashboard-links">
+        <h4><a href = "/dashboard/user-bookings">Moderate and Check User Bookings</a></h4>
+        <h4>Enter and Remove Times</h4>
+    </div>
+
+
 {% endif %}
 
 

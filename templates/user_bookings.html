@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+
+{% block pageheading %}User Bookings{% endblock %}
+
+{% block main %}
+
+{% if role == "admin" %}
+
+    <h3>All Lane Bookings</h3>
+
+    {% if user_bookings %}
+        <table class = "booking-table">
+            <thead>
+                <tr>
+                    <th>Booking ID</th>
+                    <th>User ID</th>
+                    <th>Lane</th>
+                    <th>Date</th>
+                    <th>Time Slot</th>
+                    <th>Booking Info</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for booking in all_bookings %}
+                <tr>
+                    <td>{{ booking[0] }}</td>
+                    <td>{{ booking[1] }}</td>
+                    <td>{{ booking[2] }}</td>
+                    <td>{{ booking[3] }}</td>
+                    <td>{{ booking[4] }}</td>
+                    <td><a>More Info</a></td>
+
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+
+{% else %}
+
+    <h3>Your Current Lane Bookings</h3>
+
+    {% if user_bookings %}
+        <table class = "booking-table">
+            <thead>
+                <tr>
+                    <th>Booking ID</th>
+                    <th>Lane</th>
+                    <th>Date</th>
+                    <th>Time Slot</th>
+                    <th>Booking Info</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for booking in user_bookings %}
+                <tr>
+                    <td>{{ booking[0] }}</td>
+                    <td>{{ booking[2] }}</td>
+                    <td>{{ booking[3] }}</td>
+                    <td>{{ booking[4] }}</td>
+                    <td><a>More Info</a></td>
+
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+    {% else %}
+        <p>You have no active bookings. <a href = "/booking">Book a Lane here.</a></p>
+    {% endif %}
+
+{% endif %}
+
+
+{% endblock %}

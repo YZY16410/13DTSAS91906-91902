@@ -66,6 +66,64 @@ def generate_time_slots():
 
 #     # return render_template('')
 
+@app.route('/dashboard/manage-team')
+def render_manage_team_page():
+    return render_template("manage_team.html")
+
+
+
+@app.route('/dashboard/swim-results')
+def render_swim_results_page():
+    return render_template("swim_results.html", logged_in = is_logged_in())
+
+
+@app.route('/dashboard/user-bookings')
+def render_user_bookings_page():
+    
+    user_id = session.get("user_id")
+    print(f"session user_id:{user_id}")
+    
+    
+    conn = connection_database(DATABASE)
+    cur = conn.cursor()
+    
+    role_query = ('''
+                SELECT role FROM users
+                WHERE user_id = ?
+            ''')
+    cur.execute(role_query,(user_id,))
+    
+    role = cur.fetchone()[0]
+    
+    booking_query = ('''
+                SELECT * FROM bookings
+                WHERE user_id = ?
+            ''')
+
+    
+    cur.execute(booking_query,(user_id,))
+    user_bookings = cur.fetchall()
+    print(user_bookings)
+    
+    all_bookings_query = ('''
+                        SELECT * FROM bookings
+                    ''')
+    
+    cur.execute(all_bookings_query)
+    all_bookings = cur.fetchall()
+    print(all_bookings)
+    
+    
+    return render_template(
+                        'user_bookings.html',
+                        logged_in = is_logged_in(),
+                        user_bookings = user_bookings,
+                        role = role,
+                        all_bookings = all_bookings
+                    )
+    
+    
+
 
 @app.route('/dashboard')
 def render_dashboard_page():
@@ -79,17 +137,18 @@ def render_dashboard_page():
     
     conn = connection_database(DATABASE)
     cur = conn.cursor()
-    query = ('''
-            SELECT * FROM bookings
-            WHERE user_id = ?
-        ''')
-    
-    cur.execute(query,(user_id,))
-    user_bookings = cur.fetchall()
-    print(user_bookings)
     
     
-    return render_template('dashboard.html', logged_in = is_logged_in(), user_bookings = user_bookings)
+    role_query = ('''
+                SELECT role FROM users
+                WHERE user_id = ?
+            ''')
+    cur.execute(role_query,(user_id,))
+    
+    role = cur.fetchone()[0]
+    
+    
+    return render_template('dashboard.html', logged_in = is_logged_in(), role = role)
     
 
 
@@ -206,15 +265,18 @@ def render_login_page():
             first_name = user_info[1]
             user_password = user_info[3]
         except (IndexError, TypeError):
-            return redirect("/login?error=email+or+password+invalid")
+            flash("Error email or passwords invalid")
+            return redirect(url_for("render_login_page"))
 
         if not bcrypt.check_password_hash(user_password, password):
-            return redirect("/login?error=email+or+password+invalid")
+            flash("Error email or passwords invalid")
+            return redirect(url_for("render_login_page"))
 
         session['email'] = email
         session['user_id'] = user_id
         session['first_name'] = first_name
         print(session)
+        flash(f"Successfully logged in Welcome {first_name}")
         return redirect(url_for("render_homepage"))
 
     return render_template('login.html', logged_in = is_logged_in())
