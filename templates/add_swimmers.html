@@ -1,22 +1,11 @@
 {% extends 'base.html' %}
 
-{% block pageheading %}Manage Team{% endblock %}
+{% block pageheading %}Add Swimmers{% endblock %}
 
 {% block main %}
 
-<h3>Team Members</h3>
-
-
-{% if swimmers %}
-
-<form class = "myform" method = 'post'>
-    <div class = "form-group">
-        <div class="form-label"> Search: </div>
-        <div class = "form-element"> <input type = "text" name = "swimmer"></div>
-    </div>
-</form>
-
-<table class = "booking-table">
+<h3>
+    <table class = "booking-table">
     <thead>
         <tr>
             <th>Swimmer ID</th>
@@ -24,26 +13,23 @@
             <th>Last Name</th>
             <th>Gender</th>
             <th>Club</th>
+            <th></th>
         </tr>
     </thead>
     <tbody>
-        {% for swimmer in swimmers %}
+        {% for swimmer in all_swimmers %}
         <tr>
             <td>{{ swimmer[0] }}</td>
             <td>{{ swimmer[1] }}</td>
             <td>{{ swimmer[2] }}</td>
             <td>{{ swimmer[3] }}</td>
             <td>{{ swimmer[4] }}</td>
+            <td><a href = "{{ url_for('add_swimmer_to_team', swimmer_id = swimmer[0]) }}">Add Swimmer</a></td>
 
         </tr>
         {% endfor %}
     </tbody>
 </table>
-{% else %}
-
-<p>Currently you have no swimmers.<a href = "/add-swimmers"> Add a swimmer here</a></p>
-
-{% endif %}
-
+</h3>
 
 {% endblock %}

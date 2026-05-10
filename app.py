@@ -66,15 +66,112 @@ def generate_time_slots():
 
 #     # return render_template('')
 
+@app.route('/add-swimmer/<int:swimmer_id>')
+def add_swimmer_to_team(swimmer_id):
+    if not is_logged_in():
+        flash("You must be logged in to manage teams")
+        return redirect(url_for("render_login_page"))
+
+    user_id = session.get("user_id") # The Coach/Admin's ID
+    
+    conn = connection_database(DATABASE)
+    cur = conn.cursor()
+    
+    check_query = ('''
+                    SELECT * FROM team_members
+                    WHERE coach_id = ? AND swimmer_id = ?
+                ''')
+    
+    cur.execute(check_query, (user_id,swimmer_id,))
+    
+    if cur.fetchone():
+        flash("This swimmer is already on your team")
+        return redirect(url_for("render_add_swimmers_page"))
+    
+    else:
+        
+        try:
+            query = ('''
+                    INSERT INTO team_members (coach_id, swimmer_id) VALUES(?, ?)
+                ''')
+            cur.execute(query,(user_id,swimmer_id,))
+            conn.commit()
+            flash("Swimmer successfully added to your team!")
+            
+        except Exception as e:
+            print(f"Error: {e}")
+            flash("Swimmer is already on your team")
+            
+        finally:
+            conn.close()
+        
+    
+    return redirect(url_for("render_manage_team_page"))
+
+@app.route('/add-swimmers')
+def render_add_swimmers_page():
+    if not is_logged_in():
+        flash("You must be logged in to manage teams")
+        return redirect(url_for("render_login_page"))
+    
+    user_id = session.get("user_id")
+    
+    conn = connection_database(DATABASE)
+    cur = conn.cursor()
+    query = ('''
+            SELECT * FROM swimmers
+        ''')
+    
+    cur.execute(query)
+    all_swimmers = cur.fetchall()
+    print(all_swimmers)
+    
+    return render_template(
+                        "add_swimmers.html",
+                        all_swimmers = all_swimmers,
+                        logged_in = is_logged_in()
+                    )
+    
+    
+
 @app.route('/dashboard/manage-team')
 def render_manage_team_page():
-    return render_template("manage_team.html")
+    if not is_logged_in():
+        flash("You must be logged in to view your team")
+        return redirect(url_for("render_login_page"))
+    
+    user_id = session.get("user_id")
+    
+    conn = connection_database(DATABASE)
+    cur = conn.cursor()
+    
+    query = ('''
+        SELECT s.swimmer_id, s.first_name, s.last_name, s.gender, s.club
+        FROM swimmers s
+        JOIN team_members tm ON s.swimmer_id = tm.swimmer_id
+        WHERE tm.coach_id = ?
+    ''')
+    
+    cur.execute(query, (user_id,))
+    swimmers = cur.fetchall()
+    conn.close()
+    
+    
+    
+    return render_template(
+                        "manage_team.html",
+                        logged_in = is_logged_in(),
+                        swimmers = swimmers
+                    )
 
 
 
 @app.route('/dashboard/swim-results')
 def render_swim_results_page():
-    return render_template("swim_results.html", logged_in = is_logged_in())
+    return render_template(
+                    "swim_results.html",
+                    logged_in = is_logged_in()
+                    )
 
 
 @app.route('/dashboard/user-bookings')
@@ -148,7 +245,11 @@ def render_dashboard_page():
     role = cur.fetchone()[0]
     
     
-    return render_template('dashboard.html', logged_in = is_logged_in(), role = role)
+    return render_template(
+                    'dashboard.html', 
+                    logged_in = is_logged_in(), 
+                    role = role
+                )
     
 
 
@@ -164,7 +265,12 @@ def render_booking_page():
     times_slots = generate_time_slots()
     print(f"available time slots: {times_slots}")
     
-    return render_template('booking.html', logged_in = is_logged_in(), available_lane = available_lanes, time_slots = times_slots)
+    return render_template(
+                        'booking.html',
+                        logged_in = is_logged_in(),
+                        available_lane = available_lanes, 
+                        time_slots = times_slots
+                    )
     
     
     
@@ -279,7 +385,10 @@ def render_login_page():
         flash(f"Successfully logged in Welcome {first_name}")
         return redirect(url_for("render_homepage"))
 
-    return render_template('login.html', logged_in = is_logged_in())
+    return render_template(
+                        'login.html',
+                        logged_in = is_logged_in()
+                        )
 
 
 
@@ -310,14 +419,20 @@ def render_signup_page():
         con.close()
         return redirect(url_for("render_login_page"))
 
-    return render_template('signup.html', logged_in = is_logged_in())
+    return render_template(
+        'signup.html', 
+        logged_in = is_logged_in()
+        )
 
 
 
 
 @app.route('/contact')
 def render_contact_page():
-    return render_template('contact.html', logged_in = is_logged_in())
+    return render_template(
+        'contact.html', 
+        logged_in = is_logged_in()
+        )
 
 
 
