@@ -57,14 +57,95 @@ def generate_time_slots():
 
 
 
-# @app.route('/more-info', method = ['POST'])
-# def render_more_info_page():
-#     # conn = connection_database(DATABASE)
-#     # cur = conn.cursor()
-#     # query = ('''
-#     #     ''')
+@app.route('/dashboard/user-bookings/<int:booking_id>')
+def remove_user_bookings(booking_id):
+    
+    if not is_logged_in():
+        flash("You must be logged in to manage bookings")
+        return redirect(url_for("render_login_page"))
+    
+    conn = connection_database(DATABASE)
+    cur = conn.cursor()
+    
+    try:
+        query = ('''
+                DELETE FROM bookings
+                WHERE booking_id = ?
+            ''')
+        cur.execute(query, (booking_id,))
+        conn.commit()
+        flash("Booking successfully removed")
+        
+    except Error as e:
+        print(f"Error:{e}")
+        flash("An error occured while removing the booking")
+    finally:
+        conn.close()
+    
+    return redirect(url_for("render_user_bookings_page"))
+    
 
-#     # return render_template('')
+@app.route('/manage_team/<int:swimmer_id>')
+def remove_swimmer_from_team(swimmer_id):
+    
+    if not is_logged_in():
+        flash("You must be logged in to manage teams")
+        return redirect(url_for("render_login_page"))
+
+    user_id = session.get("user_id") # The coach's user id
+    
+    conn = connection_database(DATABASE)
+    cur = conn.cursor()
+    
+    query = ('''
+            DELETE FROM team_members
+            WHERE swimmer_id = ? 
+            AND coach_id = ?
+        ''')
+    
+    cur.execute(query, (swimmer_id,user_id,))
+    conn.commit()
+    flash("Swimmmer successfully removes from team")
+    
+    
+    return redirect(url_for("render_manage_team_page"))
+    
+
+
+@app.route('/dashboard/manage-team/search', methods = ['GET', 'POST'])
+def manage_team_search():
+    if not is_logged_in():
+        flash("You must be logged in to manage teams")
+        return redirect(url_for("render_login_page"))
+    
+    search = request.form.get("swimmer-search", "")
+    user_id = session.get("user_id")
+    conn = connection_database(DATABASE)
+    cur = conn.cursor()
+    
+    query = ('''
+            SELECT s.swimmer_id, s.first_name, s.last_name, s.gender, s.club
+            FROM swimmers s
+            JOIN team_members tm ON s.swimmer_id = tm.swimmer_id
+            WHERE tm.coach_id = ?
+            AND (s.first_name LIKE ? OR s.last_name LIKE ? OR s.club LIKE ?)
+
+        ''')
+    
+    search = f"%{search}%"
+    cur.execute(query,(user_id,search,search,search))
+    
+    swimmers = cur.fetchall()
+    print(swimmers)
+    conn.close()
+    
+    return render_template(
+        "manage_team.html", 
+        swimmers = swimmers,
+        logged_in = is_logged_in,
+        is_search = True,
+        search_term = search
+        )
 
 @app.route('/add-swimmer/<int:swimmer_id>')
 def add_swimmer_to_team(swimmer_id):
@@ -79,7 +160,8 @@ def add_swimmer_to_team(swimmer_id):
     
     check_query = ('''
                     SELECT * FROM team_members
-                    WHERE coach_id = ? AND swimmer_id = ?
+                    WHERE coach_id = ? 
+                    AND swimmer_id = ?
                 ''')
     
     cur.execute(check_query, (user_id,swimmer_id,))
@@ -166,12 +248,52 @@ def render_manage_team_page():
 
 
 
-@app.route('/dashboard/swim-results')
-def render_swim_results_page():
+@app.route('/dashboard/swim-results/<int:swimmer_id>')
+def render_swim_results_page(swimmer_id):
+    
+    if not is_logged_in():
+        flash("You must be logged in to view your teams results")
+        return redirect(url_for("render_login_page"))
+    
+    
+    user_id = session.get("user_id")
+    print(f"session user_id:{user_id}")
+    
+    
+    conn = connection_database(DATABASE)
+    cur = conn.cursor()
+    
+    role_query = ('''
+                SELECT role FROM users
+                WHERE user_id = ?
+            ''')
+    cur.execute(role_query,(user_id,))
+    
+    role = cur.fetchone()[0]
+    
+    query = ('''
+        SELECT e.stroke, e.distance, r.time, r.placing, c.name, c.date, s.first_name, s.last_name
+        FROM results r
+        JOIN swimmers s ON r.swimmer_id = s.swimmer_id
+        JOIN events e ON r.event_id = e.event_id
+        JOIN competitions c ON r.competition_id = c.competition_id
+        WHERE r.swimmer_id = ?
+    ''')
+    
+    cur.execute(query, (swimmer_id,))
+    swim_results = cur.fetchall()
+    print(swim_results)
+    
+    conn.close()
+    
+    
+    
     return render_template(
-                    "swim_results.html",
-                    logged_in = is_logged_in()
-                    )
+        "swim_results.html",
+        logged_in = is_logged_in(),
+        swim_results = swim_results,
+        role = role,
+    )
 
 
 @app.route('/dashboard/user-bookings')

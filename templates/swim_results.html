@@ -4,9 +4,40 @@
 
 {% block main %}
 
-<h3>{{ session.first_name }}'s Records</h3>
+
+{% if role == "coach" %}
+    {% for results in swim_results %}
+        <h3>{{ results[6] }} {{ results[7]}}'s Swim Results</h3>
+    {% endfor %}
+
+    <table class="booking-table">
+            <thead>
+                <tr>
+                    <th>Stroke</th>
+                    <th>Distance</th>
+                    <th>Time</th>
+                    <th>Placing</th>
+                    <th>Competition</th>
+                    <th>Date</th>
 
 
+                </tr>
+            </thead>
+            <tbody>
+                {% for results in swim_results %}
+                <tr>
+                    <td>{{ results[0] }}</td>
+                    <td>{{ results[1] }}m</td>
+                    <td>{{ results[2] }}</td>
+                    <td>{{ results[3] }}</td>
+                    <td>{{ results[4] }}</td>
+                    <td>{{ results[5] }}</td>
 
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+{% endif %}
 
 {% endblock %}

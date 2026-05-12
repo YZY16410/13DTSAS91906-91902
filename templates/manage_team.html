@@ -1,49 +1,53 @@
 {% extends 'base.html' %}
-
 {% block pageheading %}Manage Team{% endblock %}
 
 {% block main %}
-
 <h3>Team Members</h3>
 
 
-{% if swimmers %}
+{% if swimmers or is_search %}
+    <p>Want to add more swimmers? <a href="/add-swimmers">Add a swimmer here</a></p>
 
-<form class = "myform" method = 'post'>
-    <div class = "form-group">
-        <div class="form-label"> Search: </div>
-        <div class = "form-element"> <input type = "text" name = "swimmer"></div>
-    </div>
-</form>
+    <form class="myform" action="/dashboard/manage-team/search" method="POST">
+        <div class="form-group">
+            <div class="form-label"><input type="text" name="swimmer-search" value="{{ search_term if search_term }}"></div>
+            <div class="form-element"><input type="submit" value="Search"></div>
+        </div>
+    </form>
 
-<table class = "booking-table">
-    <thead>
-        <tr>
-            <th>Swimmer ID</th>
-            <th>First Name</th>
-            <th>Last Name</th>
-            <th>Gender</th>
-            <th>Club</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for swimmer in swimmers %}
-        <tr>
-            <td>{{ swimmer[0] }}</td>
-            <td>{{ swimmer[1] }}</td>
-            <td>{{ swimmer[2] }}</td>
-            <td>{{ swimmer[3] }}</td>
-            <td>{{ swimmer[4] }}</td>
+    {% if swimmers %}
+        <table class="booking-table">
+            <thead>
+                <tr>
+                    <th>Swimmer ID</th>
+                    <th>First Name</th>
+                    <th>Last Name</th>
+                    <th>Gender</th>
+                    <th>Club</th>
+                    <th>Results</th>
+                    <th>Remove</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for swimmer in swimmers %}
+                <tr>
+                    <td>{{ swimmer[0] }}</td>
+                    <td>{{ swimmer[1] }}</td>
+                    <td>{{ swimmer[2] }}</td>
+                    <td>{{ swimmer[3] }}</td>
+                    <td>{{ swimmer[4] }}</td>
+                    <td><a href = "{{ url_for('render_swim_results_page', swimmer_id = swimmer[0]) }}">More Details</a></td>
+                    <td><a href = "{{ url_for('remove_swimmer_from_team', swimmer_id = swimmer[0]) }}"> Remove Swimmer </a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No swimmers found matching "{{ search_term }}". <a href="/dashboard/manage-team">Clear search</a></p>
+    {% endif %}
 
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
 {% else %}
-
-<p>Currently you have no swimmers.<a href = "/add-swimmers"> Add a swimmer here</a></p>
-
+    <p>Currently you have no swimmers. <a href="/add-swimmers">Add a swimmer here</a></p>
 {% endif %}
-
 
 {% endblock %}

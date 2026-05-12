@@ -28,7 +28,7 @@
                     <td>{{ booking[2] }}</td>
                     <td>{{ booking[3] }}</td>
                     <td>{{ booking[4] }}</td>
-                    <td><a>More Info</a></td>
+                    <td><a href = "{{ url_for('remove_user_bookings', booking_id = booking[0]) }}">Remove booking</a></td>
 
                 </tr>
                 {% endfor %}
