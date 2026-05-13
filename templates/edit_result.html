@@ -3,17 +3,17 @@
 
 {% block main %}
 
-<h2>Modify Data for {{ data[4] }} {{ data[5] }}</h2>
-<p>Event: {{ data[2] }}m {{ data[3] }}</p>
+<h2>Modify Data for {{ result[4] }} {{ result[5] }}</h2>
+<p>Event: {{ result[2] }}m {{ result[3] }}</p>
 
 <form method="POST" class="myform">
     <div class="form-group">
         <label class="form-label">Update Time</label>
-        <input type="text" name="time" value="{{ data[0] }}" required>
+        <input type="text" name="time" value="{{ result[0] }}" required>
     </div>
     <div class="form-group">
         <label class="form-label">Update Placing</label>
-        <input type="number" name="placing" value="{{ data[1] }}" required>
+        <input type="number" name="placing" value="{{ result[1] }}" required>
     </div>
     <input type="submit" value="Save Changes">
     <p><a href="{{ url_for('render_modify_times_page') }}">Cancel and Go Back</a></p>

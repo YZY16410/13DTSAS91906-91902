@@ -11,7 +11,15 @@
     </div>
 
     <div class = "dashboard-links">
-        <h3><a href = "/dashboard/swim-results">My Swim Results</a></h3>
+        {% if session.get('swimmer_id') %}
+            <h3>
+                <a href="{{ url_for('render_swim_results_page', swimmer_id=session['swimmer_id']) }}">
+                    My Swim Results
+                </a>
+            </h3>
+        {% else %}
+            <p>No swimmer profile linked to this account.</p>
+        {% endif %}
         <h3><a href = "/dashboard/user-bookings">My Current Lane Bookings</a></h3>
 
     </div>

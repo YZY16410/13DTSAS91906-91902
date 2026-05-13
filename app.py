@@ -142,7 +142,7 @@ def edit_result(result_id):
         
         query = ('''
                 UPDATE results SET time = ?, placing = ? 
-                WHERE result_id = ?"
+                WHERE result_id = ?
             ''')
         
         cur.execute(query, (new_time, new_placing, result_id))
@@ -160,10 +160,10 @@ def edit_result(result_id):
                 
             ''')
     cur.execute(fetch_query, (result_id,))
-    data = cur.fetchone()
-    print(data)
+    result_data = cur.fetchone()
+    print(result_data)
     conn.close()
-    return render_template("edit_result.html", data=data, result_id=result_id, logged_in=is_logged_in())
+    return render_template("edit_result.html", result= result_data, result_id=result_id, logged_in=is_logged_in())
 
 @app.route('/dashboard/user-bookings/<int:booking_id>')
 def remove_user_bookings(booking_id):
@@ -358,27 +358,35 @@ def render_manage_team_page():
 
 @app.route('/dashboard/swim-results/<int:swimmer_id>')
 def render_swim_results_page(swimmer_id):
-    
     if not is_logged_in():
-        flash("You must be logged in to view your teams results")
+        flash("Please log in first")
         return redirect(url_for("render_login_page"))
     
-    
     user_id = session.get("user_id")
-    print(f"session user_id:{user_id}")
-    
-    
     conn = connection_database(DATABASE)
     cur = conn.cursor()
     
-    role_query = ('''
-                SELECT role FROM users
-                WHERE user_id = ?
-            ''')
-    cur.execute(role_query,(user_id,))
+    cur.execute("SELECT role FROM users WHERE user_id = ?", (user_id,))
     
-    role = cur.fetchone()[0]
+    try:
+        role = cur.fetchone()[0]
+    except Error as e:
+        flash("User session expired. Please log in again.")
+        return redirect(url_for("render_login_page"))
     
+    if role == 'swimmer':
+        cur.execute("SELECT swimmer_id FROM swimmers WHERE user_id = ?", (user_id,))
+        own_profile = cur.fetchone()
+        
+        if own_profile:
+            my_id = own_profile[0] 
+        else:
+            return None
+        
+        if swimmer_id != my_id:
+            flash("You only have permission to view your own results.")
+            return redirect(url_for('render_dashboard_page'))
+
     query = ('''
         SELECT e.stroke, e.distance, r.time, r.placing, c.name, c.date, s.first_name, s.last_name
         FROM results r
@@ -387,20 +395,16 @@ def render_swim_results_page(swimmer_id):
         JOIN competitions c ON r.competition_id = c.competition_id
         WHERE r.swimmer_id = ?
     ''')
-    
     cur.execute(query, (swimmer_id,))
     swim_results = cur.fetchall()
     print(swim_results)
-    
     conn.close()
     
-    
-    
     return render_template(
-        "swim_results.html",
-        logged_in = is_logged_in(),
-        swim_results = swim_results,
-        role = role,
+        "swim_results.html", 
+        logged_in=True, 
+        swim_results=swim_results, 
+        role=role
     )
 
 
@@ -593,38 +597,53 @@ def render_login_page():
         cur = conn.cursor()
         cur.execute(query, (email,))
         user_info = cur.fetchone()
-        print(user_info)
-        cur.close()
-
+        
         try:
             user_id = user_info[0]
             first_name = user_info[1]
             user_password = user_info[3]
         except (IndexError, TypeError):
+            cur.close()
+            conn.close()
             flash("Error email or passwords invalid")
             return redirect(url_for("render_login_page"))
 
         if not bcrypt.check_password_hash(user_password, password):
+            cur.close()
+            conn.close()
             flash("Error email or passwords invalid")
             return redirect(url_for("render_login_page"))
 
         session['email'] = email
         session['user_id'] = user_id
         session['first_name'] = first_name
+
+        cur.execute("SELECT swimmer_id FROM swimmers WHERE user_id = ?", (user_id,))
+        swimmer_data = cur.fetchone()
+        
+        if swimmer_data:
+            session['swimmer_id'] = swimmer_data[0]
+        else:
+            session['swimmer_id'] = None
+
+        cur.close()
+        conn.close()
+        
         print(session)
         flash(f"Successfully logged in Welcome {first_name}")
         return redirect(url_for("render_homepage"))
 
     return render_template(
-                        'login.html',
-                        logged_in = is_logged_in()
-                        )
+        'login.html',
+        logged_in = is_logged_in()
+    )
 
 
 
 
 @app.route('/signup', methods = ['POST','GET'])
 def render_signup_page():
+    # gets 
     if request.method == 'POST':
         role = request.form.get('role')
         fname = request.form.get('user_fname')
@@ -633,26 +652,45 @@ def render_signup_page():
         password = request.form.get('user_password')
         confirm_password = request.form.get('user_confirm_password')
 
+        # checks if passwords are the same
         if password != confirm_password:
-            return redirect("/signup?error=passwords+do+not+match")
+            flash("Passwords do not match")
+            return redirect(url_for("render_signup_page"))
 
         if len(password) < 8:
-            return redirect("/signup?error=password+must+be+over+8+characters")
+            flash("Password must be over 8 characters")
+            return redirect(url_for("render_signup_page"))
 
         hashed_password = bcrypt.generate_password_hash(password)
 
         con = connection_database(DATABASE)
-        query_insert = "INSERT INTO users (first_name, last_name, email, password, role) VALUES(?,?,?,?,?)"
         cur = con.cursor()
-        cur.execute(query_insert, (fname, lname, email, hashed_password, role))
-        con.commit()
-        con.close()
-        return redirect(url_for("render_login_page"))
+
+        try:
+        
+            query_user = "INSERT INTO users (first_name, last_name, email, password, role) VALUES(?,?,?,?,?)"
+            cur.execute(query_user, (fname, lname, email, hashed_password, role))
+            
+            new_user_id = cur.lastrowid 
+
+            query_swimmer = "INSERT INTO swimmers (first_name, last_name, user_id, gender, club) VALUES(?,?,?,?,?)"
+            cur.execute(query_swimmer, (fname, lname, new_user_id, "TBD", "TBD"))
+
+            con.commit()
+            flash(f"Welcome {fname}! Your account and swimmer profile are ready.")
+            return redirect(url_for("render_login_page"))
+
+        except Exception as e:
+            print(f"Error during signup: {e}")
+            flash("An error occurred. The email might already be taken.")
+            return redirect(url_for("render_signup_page"))
+        finally:
+            con.close()
 
     return render_template(
         'signup.html', 
         logged_in = is_logged_in()
-        )
+    )
 
 
 

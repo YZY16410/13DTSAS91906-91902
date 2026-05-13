@@ -40,4 +40,33 @@
 
 {% endif %}
 
+
+{% if role == "swimmer" %}
+    <h2>My Performance History</h2>
+    <p>Keep track of your times and aim for your next PB</p>
+    
+    <table class="booking-table">
+        <thead>
+            <tr>
+                <th>Stroke</th>
+                <th>Distance</th>
+                <th>Personal Best</th>
+                <th>Last Competition</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for results in swim_results %}
+            <tr>
+                <td>{{ results[0] }}</td>
+                <td>{{ results[1] }}m</td>
+                <td><strong>{{ results[2] }}</strong></td>
+                <td>{{ results[4] }} ({{ results[5] }})</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+
+{% endif %}
+
 {% endblock %}
