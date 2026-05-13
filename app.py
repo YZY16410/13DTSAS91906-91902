@@ -152,9 +152,10 @@ def edit_result(result_id):
         return redirect(url_for('render_modify_times_page'))
 
     fetch_query = ('''
-                SELECT r.time, r.placing 
+                SELECT r.time, r.placing, e.distance, e.stroke, s.first_name, s.last_name
                 FROM results r
                 JOIN events e ON e.event_id = r.event_id
+                JOIN swimmers s ON s.swimmer_id = r.swimmer_id
                 WHERE result_id = ?
                 
             ''')
