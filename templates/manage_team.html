@@ -4,12 +4,13 @@
 {% block main %}
 <h3>Team Members</h3>
 
-
+{# Check if there are swimmers in the list or if a search has been performed #}
 {% if swimmers or is_search %}
     <p>Want to add more swimmers? <a href="/add-swimmers">Add a swimmer here</a></p>
 
     <form class="myform" action="/dashboard/manage-team/search" method="POST">
         <div class="form-group">
+            {# Pre-populate search bar with current search term if available #}
             <div class="form-label"><input type="text" name="swimmer-search" value="{{ search_term if search_term }}"></div>
             <div class="form-element"><input type="submit" value="Search"></div>
         </div>
@@ -29,6 +30,7 @@
                 </tr>
             </thead>
             <tbody>
+                {# Populate table rows with swimmer details #}
                 {% for swimmer in swimmers %}
                 <tr>
                     <td>{{ swimmer[0] }}</td>
@@ -43,10 +45,12 @@
             </tbody>
         </table>
     {% else %}
+        {# Feedback for empty search results #}
         <p>No swimmers found matching "{{ search_term }}". <a href="/dashboard/manage-team">Clear search</a></p>
     {% endif %}
 
 {% else %}
+    {# Display message if the coach has no swimmers yet #}
     <p>Currently you have no swimmers. <a href="/add-swimmers">Add a swimmer here</a></p>
 {% endif %}
 

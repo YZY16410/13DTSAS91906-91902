@@ -4,16 +4,19 @@ from sqlite3 import Error
 from flask_bcrypt import Bcrypt
 from datetime import datetime
 
-
+# Global settings for the application
 DATABASE = "swim"
 app = Flask(__name__)
 bcrypt = Bcrypt(app)
 app.secret_key = "helloworld"
 
 
-
-
 def is_logged_in():
+    """
+    Checks if a user_id exists in the current session.
+    :return: Boolean (True if logged in, False otherwise)
+    """
+    # Check if the user ID is missing from the session folder
     if session.get("user_id") is None:
         print("Not logged in")
         return False
@@ -23,40 +26,49 @@ def is_logged_in():
         return True
 
 
-
-
 def connection_database(db_file):
     """
-    creates a connection with the database
-    :param db_file:
-    :return: conn
+    Creates a connection with the database.
+    :param db_file: The path to the database file (e.g., 'swim')
+    :return: A connection object or None if an error occurs
     """
     try:
         connection = sqlite3.connect(db_file)
         return connection
+    # Handle cases where the database file might be missing or locked
     except Error as e:
         print(e)
         print(f'An error occurred when connecting to the database. ')
     return None
 
 
-
-
 @app.route('/')
 def render_homepage():
+    """
+    Renders the main landing page.
+    :return: HTML template for home.html
+    """
     return render_template('home.html', logged_in = is_logged_in())
 
 
-
-
 def generate_time_slots():
+    """
+    Creates a list of time strings for the booking dropdown.
+    :return: A list of strings representing hours (06:00 to 21:00)
+    """
     slots = []
+    # Create hourly slots starting from 6 AM to 9 PM
     for i in range(6,22):
         slots.append(f"{i:02d}:00")
     return slots
 
 @app.route('/dashboard/modify-times', methods=['GET', 'POST'])
 def render_modify_times_page():
+    """
+    Handles viewing and adding performance records.
+    :return: HTML template for modify_times.html
+    """
+    # Security gate: Kick guests back to the login page
     if not is_logged_in():
         flash("You must be admin to modify times")
         return redirect(url_for("render_login_page"))
@@ -64,6 +76,7 @@ def render_modify_times_page():
     conn = connection_database(DATABASE)
     cur = conn.cursor()
 
+    # Handle the submission of a new swim result
     if request.method == 'POST':
         # Retrieve form data 
         swimmer_id = request.form.get('swimmer_id')
@@ -80,12 +93,13 @@ def render_modify_times_page():
                 ''')
             
             cur.execute(query, (swimmer_id, event_id, comp_id, swim_time, placing))
-            conn.commit()
+            conn.commit() # Save the changes permanently
             flash("New result added successfully!")
         except Error as e:
             print(f"Error: {e}")
             flash("An error occurred while adding the result")
 
+    # Fetch lookup data for the display table using multiple JOINS to get human-readable names
     fetch_query = ('''
         SELECT r.result_id, s.first_name, s.last_name, e.stroke, e.distance, r.time, r.placing, c.name
         FROM results r
@@ -97,13 +111,16 @@ def render_modify_times_page():
     cur.execute(fetch_query)
     all_results = cur.fetchall()
 
-    cur.execute("SELECT swimmer_id, first_name, last_name FROM swimmers")
+    query_1 = "SELECT swimmer_id, first_name, last_name FROM swimmers"
+    cur.execute(query_1)
     swimmers_list = cur.fetchall()
     
-    cur.execute("SELECT event_id, stroke, distance FROM events")
+    query_2 = "SELECT event_id, stroke, distance FROM events"
+    cur.execute(query_2)
     events_list = cur.fetchall()
     
-    cur.execute("SELECT competition_id, name FROM competitions")
+    query_3 = "SELECT competition_id, name FROM competitions"
+    cur.execute(query_3)
     comps_list = cur.fetchall()
 
     conn.close()
@@ -119,12 +136,19 @@ def render_modify_times_page():
 
 @app.route('/delete-result/<int:result_id>')
 def delete_result(result_id):
+    """
+    Deletes a specific result record from the database.
+    :param result_id: The unique ID of the result to be deleted
+    :return: Redirects to the modify times page
+    """
+    # Permission check for active login
     if not is_logged_in():
         return redirect(url_for("render_login_page"))
     
     conn = connection_database(DATABASE)
     cur = conn.cursor()
-    cur.execute("DELETE FROM results WHERE result_id = ?", (result_id,))
+    delete_query = "DELETE FROM results WHERE result_id = ?"
+    cur.execute(delete_query, (result_id,))
     conn.commit()
     conn.close()
     flash("Result successfully deleted")
@@ -132,13 +156,18 @@ def delete_result(result_id):
 
 @app.route('/edit-result/<int:result_id>', methods=['GET', 'POST'])
 def edit_result(result_id):
+    """
+    Updates an existing result record.
+    :param result_id: The unique ID of the result to be edited
+    :return: HTML template for edit_result.html or a redirect on success
+    """
     conn = connection_database(DATABASE)
     cur = conn.cursor()
 
+    # Process user edits for an existing record
     if request.method == 'POST':
         new_time = request.form.get('time')
         new_placing = request.form.get('placing')
-        
         
         query = ('''
                 UPDATE results SET time = ?, placing = ? 
@@ -151,6 +180,7 @@ def edit_result(result_id):
         flash("Result updated!")
         return redirect(url_for('render_modify_times_page'))
 
+    # Load existing data so the user can see what they are editing
     fetch_query = ('''
                 SELECT r.time, r.placing, e.distance, e.stroke, s.first_name, s.last_name
                 FROM results r
@@ -167,7 +197,11 @@ def edit_result(result_id):
 
 @app.route('/dashboard/user-bookings/<int:booking_id>')
 def remove_user_bookings(booking_id):
-    
+    """
+    Removes a booking entry.
+    :param booking_id: The unique ID of the booking to delete
+    :return: Redirects to the user bookings page
+    """
     if not is_logged_in():
         flash("You must be logged in to manage bookings")
         return redirect(url_for("render_login_page"))
@@ -183,7 +217,7 @@ def remove_user_bookings(booking_id):
         cur.execute(query, (booking_id,))
         conn.commit()
         flash("Booking successfully removed")
-        
+    # Prevent application crashes if a database error occurs during deletion
     except Error as e:
         print(f"Error:{e}")
         flash("An error occured while removing the booking")
@@ -195,12 +229,16 @@ def remove_user_bookings(booking_id):
 
 @app.route('/manage_team/<int:swimmer_id>')
 def remove_swimmer_from_team(swimmer_id):
-    
+    """
+    Removes a swimmer from the team associated with the current coach.
+    :param swimmer_id: The unique ID of the swimmer to remove
+    :return: Redirects to the manage team page
+    """
     if not is_logged_in():
         flash("You must be logged in to manage teams")
         return redirect(url_for("render_login_page"))
 
-    user_id = session.get("user_id") # The coach's user id
+    user_id = session.get("user_id")
     
     conn = connection_database(DATABASE)
     cur = conn.cursor()
@@ -215,13 +253,16 @@ def remove_swimmer_from_team(swimmer_id):
     conn.commit()
     flash("Swimmmer successfully removes from team")
     
-    
     return redirect(url_for("render_manage_team_page"))
     
 
 
 @app.route('/dashboard/manage-team/search', methods = ['GET', 'POST'])
 def manage_team_search():
+    """
+    Searches for swimmers on the coach's team.
+    :return: HTML template for manage_team.html with filtered results
+    """
     if not is_logged_in():
         flash("You must be logged in to manage teams")
         return redirect(url_for("render_login_page"))
@@ -231,6 +272,7 @@ def manage_team_search():
     conn = connection_database(DATABASE)
     cur = conn.cursor()
     
+    # Filter team members by name or club using partial matches (LIKE)
     query = ('''
             SELECT s.swimmer_id, s.first_name, s.last_name, s.gender, s.club
             FROM swimmers s
@@ -257,15 +299,21 @@ def manage_team_search():
 
 @app.route('/add-swimmer/<int:swimmer_id>')
 def add_swimmer_to_team(swimmer_id):
+    """
+    Adds a swimmer to the current coach's team.
+    :param swimmer_id: The unique ID of the swimmer to add
+    :return: Redirects to manage team or add swimmers page
+    """
     if not is_logged_in():
         flash("You must be logged in to manage teams")
         return redirect(url_for("render_login_page"))
 
-    user_id = session.get("user_id") # The Coach/Admin's ID
+    user_id = session.get("user_id")
     
     conn = connection_database(DATABASE)
     cur = conn.cursor()
     
+    # Validation query: check if the swimmer is already assigned to this coach
     check_query = ('''
                     SELECT * FROM team_members
                     WHERE coach_id = ? 
@@ -274,12 +322,12 @@ def add_swimmer_to_team(swimmer_id):
     
     cur.execute(check_query, (user_id,swimmer_id,))
     
+    # If fetchone() returns data, the coach already has this swimmer
     if cur.fetchone():
         flash("This swimmer is already on your team")
         return redirect(url_for("render_add_swimmers_page"))
     
     else:
-        
         try:
             query = ('''
                     INSERT INTO team_members (coach_id, swimmer_id) VALUES(?, ?)
@@ -295,11 +343,14 @@ def add_swimmer_to_team(swimmer_id):
         finally:
             conn.close()
         
-    
     return redirect(url_for("render_manage_team_page"))
 
 @app.route('/add-swimmers')
 def render_add_swimmers_page():
+    """
+    Lists all available swimmers that can be added to a team.
+    :return: HTML template for add_swimmers.html
+    """
     if not is_logged_in():
         flash("You must be logged in to manage teams")
         return redirect(url_for("render_login_page"))
@@ -326,6 +377,10 @@ def render_add_swimmers_page():
 
 @app.route('/dashboard/manage-team')
 def render_manage_team_page():
+    """
+    Displays the swimmers currently on the coach's team.
+    :return: HTML template for manage_team.html
+    """
     if not is_logged_in():
         flash("You must be logged in to view your team")
         return redirect(url_for("render_login_page"))
@@ -335,6 +390,7 @@ def render_manage_team_page():
     conn = connection_database(DATABASE)
     cur = conn.cursor()
     
+    # Fetch team members assigned specifically to the logged-in coach
     query = ('''
         SELECT s.swimmer_id, s.first_name, s.last_name, s.gender, s.club
         FROM swimmers s
@@ -346,8 +402,6 @@ def render_manage_team_page():
     swimmers = cur.fetchall()
     conn.close()
     
-    
-    
     return render_template(
                         "manage_team.html",
                         logged_in = is_logged_in(),
@@ -358,6 +412,11 @@ def render_manage_team_page():
 
 @app.route('/dashboard/swim-results/<int:swimmer_id>')
 def render_swim_results_page(swimmer_id):
+    """
+    Displays performance records for a specific swimmer.
+    :param swimmer_id: The unique ID of the swimmer whose results are requested
+    :return: HTML template for swim_results.html
+    """
     if not is_logged_in():
         flash("Please log in first")
         return redirect(url_for("render_login_page"))
@@ -366,16 +425,22 @@ def render_swim_results_page(swimmer_id):
     conn = connection_database(DATABASE)
     cur = conn.cursor()
     
-    cur.execute("SELECT role FROM users WHERE user_id = ?", (user_id,))
+    # First, retrieve the user's role to determine viewing permissions
+    query_1 = ("SELECT role FROM users WHERE user_id = ?")
+    
+    cur.execute(query_1, (user_id,))
     
     try:
         role = cur.fetchone()[0]
+    # Handle edge cases where a user session exists but the DB record is gone
     except Error as e:
         flash("User session expired. Please log in again.")
         return redirect(url_for("render_login_page"))
     
+    # If the user is a swimmer, verify they are only trying to see their own results
     if role == 'swimmer':
-        cur.execute("SELECT swimmer_id FROM swimmers WHERE user_id = ?", (user_id,))
+        query_2 = ("SELECT swimmer_id FROM swimmers WHERE user_id = ?")
+        cur.execute(query_2, (user_id,))
         own_profile = cur.fetchone()
         
         if own_profile:
@@ -383,10 +448,12 @@ def render_swim_results_page(swimmer_id):
         else:
             return None
         
+        # Block swimmers from snooping on other swimmers' results via URL manipulation
         if swimmer_id != my_id:
             flash("You only have permission to view your own results.")
             return redirect(url_for('render_dashboard_page'))
 
+    # Join results with event and competition data for a complete overview
     query = ('''
         SELECT e.stroke, e.distance, r.time, r.placing, c.name, c.date, s.first_name, s.last_name
         FROM results r
@@ -410,10 +477,12 @@ def render_swim_results_page(swimmer_id):
 
 @app.route('/dashboard/user-bookings')
 def render_user_bookings_page():
-    
+    """
+    Shows bookings for the current user and all bookings for admins.
+    :return: HTML template for user_bookings.html
+    """
     user_id = session.get("user_id")
     print(f"session user_id:{user_id}")
-    
     
     conn = connection_database(DATABASE)
     cur = conn.cursor()
@@ -431,7 +500,6 @@ def render_user_bookings_page():
                 WHERE user_id = ?
             ''')
 
-    
     cur.execute(booking_query,(user_id,))
     user_bookings = cur.fetchall()
     print(user_bookings)
@@ -443,7 +511,6 @@ def render_user_bookings_page():
     cur.execute(all_bookings_query)
     all_bookings = cur.fetchall()
     print(all_bookings)
-    
     
     return render_template(
                         'user_bookings.html',
@@ -458,6 +525,10 @@ def render_user_bookings_page():
 
 @app.route('/dashboard')
 def render_dashboard_page():
+    """
+    Renders the appropriate dashboard based on user role.
+    :return: HTML template for dashboard.html
+    """
     if not is_logged_in():
         flash("Error You must be logged in")
         return redirect(url_for("render_login_page"))
@@ -465,10 +536,8 @@ def render_dashboard_page():
     user_id = session.get("user_id")
     print(f"session user_id:{user_id}")
     
-    
     conn = connection_database(DATABASE)
     cur = conn.cursor()
-    
     
     role_query = ('''
                 SELECT role FROM users
@@ -477,7 +546,6 @@ def render_dashboard_page():
     cur.execute(role_query,(user_id,))
     
     role = cur.fetchone()[0]
-    
     
     return render_template(
                     'dashboard.html', 
@@ -491,6 +559,10 @@ def render_dashboard_page():
 
 @app.route('/booking', methods = ['GET'])
 def render_booking_page():
+    """
+    Shows the lane booking form.
+    :return: HTML template for booking.html
+    """
     if not is_logged_in():
         flash("Error You must be logged in")
         return redirect(url_for("render_login_page"))
@@ -511,6 +583,10 @@ def render_booking_page():
     
 @app.route('/submit-booking', methods = ['POST'])
 def submit_booking():
+    """
+    Processes a lane booking submission.
+    :return: Redirects back to the booking page with a success or error message
+    """
     if not is_logged_in():
         return redirect(url_for('render_login_page'))
     
@@ -520,7 +596,7 @@ def submit_booking():
     duration = int(request.form['duration'])
     user_id = session.get("user_id")
     
-    
+    # Business logic check: bookings must be exactly 1 or 2 hours
     if duration not in (1,2):
         flash("Only 1 to 2 hr bookings")
         return redirect(url_for("render_booking_page"))
@@ -529,6 +605,7 @@ def submit_booking():
         booking_date_obj = datetime.strptime(booking_date, "%Y-%m-%d")
         today_date = datetime.today()
         print(today_date)
+        # Prevent users from booking pool lanes in the past
         if booking_date_obj < today_date:
             flash("Error: Cannot book past dates")
             return redirect(url_for("render_booking_page"))
@@ -537,10 +614,12 @@ def submit_booking():
         flash("Error: Invalid date")
         return redirect(url_for("render_booking_page"))
     
+    # Calculate end time based on the starting hour and duration selected
     start_hr = int(start_time[:2])
     end_hr = start_hr + duration
     end_time = f"{end_hr:02d}:00"
     
+    # Pool operational hours check: facility closes at 9 PM
     if end_hr > 21:
         flash("Error: Cannot book past 9pm")
         return redirect(url_for("render_booking_page"))
@@ -549,6 +628,7 @@ def submit_booking():
     
     conn = connection_database(DATABASE)
     cur  = conn.cursor()
+    # SQL query to check if the specific lane is already reserved for this time/date
     query = ('''
              SELECT * FROM bookings
             WHERE lane_id = ? AND booking_date = ? AND time_slot = ?
@@ -556,6 +636,7 @@ def submit_booking():
     
     cur.execute(query, (lane_id, booking_date, time_slot))
     
+    # If fetchone() finds a record, it means a conflict exists
     if cur.fetchone():
         flash("Error: Lane already booked")
         return redirect(url_for("render_booking_page"))
@@ -578,13 +659,22 @@ def submit_booking():
 
 @app.route('/logout')
 def logout():
-    session.clear()
+    """
+    Clears the session and logs the user out.
+    :return: Redirects to the homepage
+    """
+    session.clear() # Wipes all active user data from the browser session
     return redirect(url_for("render_homepage"))
 
 
 
 @app.route('/login', methods = ['POST','GET'])
 def render_login_page():
+    """
+    Handles user login.
+    :return: HTML template for login.html or redirects on successful login
+    """
+    # If the user is already authenticated, send them to the home page
     if is_logged_in():
         return redirect(url_for("render_homepage"))
 
@@ -602,25 +692,31 @@ def render_login_page():
             user_id = user_info[0]
             first_name = user_info[1]
             user_password = user_info[3]
+        # Handle the case where the provided email does not exist in the database
         except (IndexError, TypeError):
             cur.close()
             conn.close()
             flash("Error email or passwords invalid")
             return redirect(url_for("render_login_page"))
 
+        # Use Bcrypt to securely verify the hashed password
         if not bcrypt.check_password_hash(user_password, password):
             cur.close()
             conn.close()
             flash("Error email or passwords invalid")
             return redirect(url_for("render_login_page"))
 
+        # Store essential user data in the session for state management
         session['email'] = email
         session['user_id'] = user_id
         session['first_name'] = first_name
+        
+        data_query = "SELECT swimmer_id FROM swimmers WHERE user_id = ?"
 
-        cur.execute("SELECT swimmer_id FROM swimmers WHERE user_id = ?", (user_id,))
+        cur.execute(data_query, (user_id,))
         swimmer_data = cur.fetchone()
         
+        # Link the swimmer profile if one exists for the user account
         if swimmer_data:
             session['swimmer_id'] = swimmer_data[0]
         else:
@@ -643,7 +739,10 @@ def render_login_page():
 
 @app.route('/signup', methods = ['POST','GET'])
 def render_signup_page():
-    # gets 
+    """
+    Registers a new user and creates a swimmer profile.
+    :return: HTML template for signup.html or redirect to login on success
+    """
     if request.method == 'POST':
         role = request.form.get('role')
         fname = request.form.get('user_fname')
@@ -652,7 +751,7 @@ def render_signup_page():
         password = request.form.get('user_password')
         confirm_password = request.form.get('user_confirm_password')
 
-        # checks if passwords are the same
+        # Form validation: ensure passwords match and are long enough for security
         if password != confirm_password:
             flash("Passwords do not match")
             return redirect(url_for("render_signup_page"))
@@ -661,6 +760,7 @@ def render_signup_page():
             flash("Password must be over 8 characters")
             return redirect(url_for("render_signup_page"))
 
+        # Encrypt the password before storing it in the database
         hashed_password = bcrypt.generate_password_hash(password)
 
         con = connection_database(DATABASE)
@@ -668,11 +768,14 @@ def render_signup_page():
 
         try:
         
+            # Create the main user account record
             query_user = "INSERT INTO users (first_name, last_name, email, password, role) VALUES(?,?,?,?,?)"
             cur.execute(query_user, (fname, lname, email, hashed_password, role))
             
+            # Retrieve the newly created unique user ID to link other tables
             new_user_id = cur.lastrowid 
 
+            # Every account automatically receives a basic swimmer profile
             query_swimmer = "INSERT INTO swimmers (first_name, last_name, user_id, gender, club) VALUES(?,?,?,?,?)"
             cur.execute(query_swimmer, (fname, lname, new_user_id, "TBD", "TBD"))
 
@@ -680,6 +783,7 @@ def render_signup_page():
             flash(f"Welcome {fname}! Your account and swimmer profile are ready.")
             return redirect(url_for("render_login_page"))
 
+        # Handle unique constraint violations (e.g., if the email is already registered)
         except Exception as e:
             print(f"Error during signup: {e}")
             flash("An error occurred. The email might already be taken.")
@@ -697,6 +801,10 @@ def render_signup_page():
 
 @app.route('/contact')
 def render_contact_page():
+    """
+    Shows contact information.
+    :return: HTML template for contact.html
+    """
     return render_template(
         'contact.html', 
         logged_in = is_logged_in()

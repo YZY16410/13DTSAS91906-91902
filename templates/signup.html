@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 
+{# Set the page heading for the user registration form #}
 {% block pageheading %}Signup{% endblock %}
 
 {% block main %}
@@ -7,6 +8,7 @@
         <div class="form-group">
             <div class="form-label"> Role: </div>
             <div class="form-element">
+                {# Allow users to select their account permissions level #}
                 <select name="role" required>
                     <option value="swimmer">Swimmer</option>
                     <option value="coach">Coach</option>
@@ -45,7 +47,5 @@
             <div class = "form-element"> <input type = "submit" value="Signup"></div>
         </div>
     </form>
-
-
 
 {% endblock %}

@@ -4,13 +4,14 @@
 
 {% block main %}
 
-
+{# Logic for Swimmer role view #}
 {% if role == "swimmer" %}
     <div class = "dashboard-header"> 
         <strong><em>Check your bookings, Check your times, Make your profile!</em></strong>
     </div>
 
     <div class = "dashboard-links">
+        {# Ensure a swimmer profile is linked to the session before showing results link #}
         {% if session.get('swimmer_id') %}
             <h3>
                 <a href="{{ url_for('render_swim_results_page', swimmer_id=session['swimmer_id']) }}">
@@ -24,12 +25,9 @@
 
     </div>
 
-
-
 {% endif %}
 
-
-
+{# Logic for Coach role view #}
 {% if role == "coach" %}
 
     <div class = "dashboard-links">
@@ -37,11 +35,9 @@
         <h3><a href = "/dashboard/user-bookings">View your Bookings</a></h3>
     </div>
 
-
 {% endif %}
 
-
-
+{# Logic for Admin role view #}
 {% if role == "admin" %}
 
     <h3>Admin Dashboard</h3>
@@ -52,8 +48,6 @@
         <h4><a href = "/dashboard/modify-times">Enter and Remove Times</a></h4>
     </div>
 
-
 {% endif %}
-
 
 {% endblock %}

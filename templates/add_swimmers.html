@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 
+{# Set the page heading for the add swimmers interface #}
 {% block pageheading %}Add Swimmers{% endblock %}
 
 {% block main %}
@@ -17,13 +18,16 @@
         </tr>
     </thead>
     <tbody>
+        {# Iterate through the list of all available swimmers #}
         {% for swimmer in all_swimmers %}
         <tr>
+            {# Access swimmer data by index #}
             <td>{{ swimmer[0] }}</td>
             <td>{{ swimmer[1] }}</td>
             <td>{{ swimmer[2] }}</td>
             <td>{{ swimmer[3] }}</td>
             <td>{{ swimmer[4] }}</td>
+            {# Link to add a specific swimmer to the team using their ID #}
             <td><a href = "{{ url_for('add_swimmer_to_team', swimmer_id = swimmer[0]) }}">Add Swimmer</a></td>
 
         </tr>

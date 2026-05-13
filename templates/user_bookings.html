@@ -1,12 +1,15 @@
 {% extends 'base.html' %}
+{# Set the page heading for the bookings management interface #}
 {% block pageheading %}User Bookings{% endblock %}
 
 {% block main %}
 
+{# Logic for Admin view: global oversight of all system bookings #}
 {% if role == "admin" %}
 
     <h3>All Lane Bookings</h3>
 
+    {# Only render table if there are bookings present in the system #}
     {% if user_bookings %}
         <table class = "booking-table">
             <thead>
@@ -20,6 +23,7 @@
                 </tr>
             </thead>
             <tbody>
+                {# Iterate through all bookings across the entire platform #}
                 {% for booking in all_bookings %}
                 <tr>
                     <td>{{ booking[0] }}</td>
@@ -27,18 +31,20 @@
                     <td>{{ booking[2] }}</td>
                     <td>{{ booking[3] }}</td>
                     <td>{{ booking[4] }}</td>
+                    {# Administrative control to cancel any user booking #}
                     <td><a href = "{{ url_for('remove_user_bookings', booking_id = booking[0]) }}">Remove booking</a></td>
-
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     {% endif %}
 
+{# Logic for Swimmer/Coach view: see personal schedule #}
 {% else %}
 
     <h3>Your Current Lane Bookings</h3>
 
+    {# Check if the logged-in user has any active reservations #}
     {% if user_bookings %}
         <table class = "booking-table">
             <thead>
@@ -51,6 +57,7 @@
                 </tr>
             </thead>
             <tbody>
+                {# Display the user's specific scheduled lanes #}
                 {% for booking in user_bookings %}
                 <tr>
                     <td>{{ booking[0] }}</td>
@@ -58,17 +65,16 @@
                     <td>{{ booking[3] }}</td>
                     <td>{{ booking[4] }}</td>
                     <td><a>More Info</a></td>
-
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
 
+    {# Offer a link to the booking page if no active slots are found #}
     {% else %}
         <p>You have no active bookings. <a href = "/booking">Book a Lane here.</a></p>
     {% endif %}
 
 {% endif %}
-
 
 {% endblock %}

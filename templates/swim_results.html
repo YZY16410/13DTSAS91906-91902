@@ -1,11 +1,13 @@
 {% extends 'base.html' %}
 
+{# Set the page heading for performance tracking #}
 {% block pageheading %}Performance Records{% endblock %}
 
 {% block main %}
 
-
+{# Logic for Coach view: see detailed results for a specific team member #}
 {% if role == "coach" %}
+    {# Display the name of the swimmer whose results are being viewed #}
     {% for results in swim_results %}
         <h3>{{ results[6] }} {{ results[7]}}'s Swim Results</h3>
     {% endfor %}
@@ -19,11 +21,10 @@
                     <th>Placing</th>
                     <th>Competition</th>
                     <th>Date</th>
-
-
                 </tr>
             </thead>
             <tbody>
+                {# List all historical results for the selected swimmer #}
                 {% for results in swim_results %}
                 <tr>
                     <td>{{ results[0] }}</td>
@@ -32,7 +33,6 @@
                     <td>{{ results[3] }}</td>
                     <td>{{ results[4] }}</td>
                     <td>{{ results[5] }}</td>
-
                 </tr>
                 {% endfor %}
             </tbody>
@@ -40,7 +40,7 @@
 
 {% endif %}
 
-
+{# Logic for Swimmer view: focused on Personal Bests and progress #}
 {% if role == "swimmer" %}
     <h2>My Performance History</h2>
     <p>Keep track of your times and aim for your next PB</p>
@@ -55,6 +55,7 @@
             </tr>
         </thead>
         <tbody>
+            {# Summarize best times for the logged-in swimmer #}
             {% for results in swim_results %}
             <tr>
                 <td>{{ results[0] }}</td>
@@ -65,7 +66,6 @@
             {% endfor %}
         </tbody>
     </table>
-
 
 {% endif %}
 
