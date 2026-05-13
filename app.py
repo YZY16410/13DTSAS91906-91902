@@ -55,7 +55,114 @@ def generate_time_slots():
         slots.append(f"{i:02d}:00")
     return slots
 
+@app.route('/dashboard/modify-times', methods=['GET', 'POST'])
+def render_modify_times_page():
+    if not is_logged_in():
+        flash("You must be admin to modify times")
+        return redirect(url_for("render_login_page"))
 
+    conn = connection_database(DATABASE)
+    cur = conn.cursor()
+
+    if request.method == 'POST':
+        # Retrieve form data 
+        swimmer_id = request.form.get('swimmer_id')
+        event_id = request.form.get('event_id')
+        comp_id = request.form.get('competition_id')
+        swim_time = request.form.get('time')
+        placing = request.form.get('placing')
+
+        try:
+            # Insert new record into results table 
+            query = ('''
+                    INSERT INTO results (swimmer_id, event_id, competition_id, time, placing) 
+                    VALUES (?, ?, ?, ?, ?)
+                ''')
+            
+            cur.execute(query, (swimmer_id, event_id, comp_id, swim_time, placing))
+            conn.commit()
+            flash("New result added successfully!")
+        except Error as e:
+            print(f"Error: {e}")
+            flash("An error occurred while adding the result")
+
+    fetch_query = ('''
+        SELECT r.result_id, s.first_name, s.last_name, e.stroke, e.distance, r.time, r.placing, c.name
+        FROM results r
+        JOIN swimmers s ON r.swimmer_id = s.swimmer_id
+        JOIN events e ON r.event_id = e.event_id
+        JOIN competitions c ON r.competition_id = c.competition_id
+    ''')
+    
+    cur.execute(fetch_query)
+    all_results = cur.fetchall()
+
+    cur.execute("SELECT swimmer_id, first_name, last_name FROM swimmers")
+    swimmers_list = cur.fetchall()
+    
+    cur.execute("SELECT event_id, stroke, distance FROM events")
+    events_list = cur.fetchall()
+    
+    cur.execute("SELECT competition_id, name FROM competitions")
+    comps_list = cur.fetchall()
+
+    conn.close()
+    
+    return render_template(
+        "modify_times.html",
+        results=all_results,
+        swimmers=swimmers_list,
+        events=events_list,
+        comps=comps_list,
+        logged_in=is_logged_in()
+    )
+
+@app.route('/delete-result/<int:result_id>')
+def delete_result(result_id):
+    if not is_logged_in():
+        return redirect(url_for("render_login_page"))
+    
+    conn = connection_database(DATABASE)
+    cur = conn.cursor()
+    cur.execute("DELETE FROM results WHERE result_id = ?", (result_id,))
+    conn.commit()
+    conn.close()
+    flash("Result successfully deleted")
+    return redirect(url_for('render_modify_times_page'))
+
+@app.route('/edit-result/<int:result_id>', methods=['GET', 'POST'])
+def edit_result(result_id):
+    conn = connection_database(DATABASE)
+    cur = conn.cursor()
+
+    if request.method == 'POST':
+        new_time = request.form.get('time')
+        new_placing = request.form.get('placing')
+        
+        
+        query = ('''
+                UPDATE results SET time = ?, placing = ? 
+                WHERE result_id = ?"
+            ''')
+        
+        cur.execute(query, (new_time, new_placing, result_id))
+        conn.commit()
+        conn.close()
+        flash("Result updated!")
+        return redirect(url_for('render_modify_times_page'))
+
+    fetch_query = ('''
+                SELECT r.time, r.placing 
+                FROM results r
+                JOIN events e ON e.event_id = r.event_id
+                WHERE result_id = ?
+                
+            ''')
+    cur.execute(fetch_query, (result_id,))
+    data = cur.fetchone()
+    print(data)
+    conn.close()
+    return render_template("edit_result.html", data=data, result_id=result_id, logged_in=is_logged_in())
 
 @app.route('/dashboard/user-bookings/<int:booking_id>')
 def remove_user_bookings(booking_id):
