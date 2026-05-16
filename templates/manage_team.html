@@ -39,7 +39,7 @@
                     <td>{{ swimmer[3] }}</td>
                     <td>{{ swimmer[4] }}</td>
                     <td><a href = "{{ url_for('render_swim_results_page', swimmer_id = swimmer[0]) }}">More Details</a></td>
-                    <td><a href = "{{ url_for('remove_swimmer_from_team', swimmer_id = swimmer[0]) }}"> Remove Swimmer </a></td>
+                    <td><a href = "{{ url_for('remove_swimmer_from_team', swimmer_id = swimmer[0]) }}" onclick="return confirm('Delete this record permanently?')"> Remove Swimmer </a></td>
                 </tr>
                 {% endfor %}
             </tbody>

@@ -4,16 +4,26 @@
 {% block pageheading %}Signup{% endblock %}
 
 {% block main %}
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    
     <form class = "myform" method="post">
         <div class="form-group">
             <div class="form-label"> Role: </div>
             <div class="form-element">
                 {# Allow users to select their account permissions level #}
-                <select name="role" required>
+                <select name="role" id = "role-select" onchange = "toggleSecretKey()">
                     <option value="swimmer">Swimmer</option>
                     <option value="coach">Coach</option>
                     <option value="admin">Admin</option>
                 </select>
+            </div>
+        </div>
+
+        {# Used for the admin key and will set display to block when the admin role option is selected #}
+        <div class="form-group" id="admin-secret-wrap" style="display: none;">
+            <div class="form-label"> Admin Secret Key: </div>
+            <div class="form-element"> 
+                <input type="password" name="admin_secret_key" id="admin-secret-key">
             </div>
         </div>
 

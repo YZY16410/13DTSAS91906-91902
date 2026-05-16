@@ -9,6 +9,7 @@ DATABASE = "swim"
 app = Flask(__name__)
 bcrypt = Bcrypt(app)
 app.secret_key = "helloworld"
+ADMIN_SECRET_KEY = "very_secret_key"
 
 
 def is_logged_in():
@@ -99,7 +100,7 @@ def render_modify_times_page():
             print(f"Error: {e}")
             flash("An error occurred while adding the result")
 
-    # Fetch lookup data for the display table using multiple JOINS to get human-readable names
+    # Fetch data for the display table using JOIN to get data from other tables
     fetch_query = ('''
         SELECT r.result_id, s.first_name, s.last_name, e.stroke, e.distance, r.time, r.placing, c.name
         FROM results r
@@ -750,6 +751,14 @@ def render_signup_page():
         email = request.form.get('user_email').lower().strip()
         password = request.form.get('user_password')
         confirm_password = request.form.get('user_confirm_password')
+        
+        # Checks if role is admin and then verifies the secret key
+        if role == 'admin':
+            secret_key_input = request.form.get('admin_secret_key')
+            # If the secret key is incorrect, flash an error and reload signup
+            if secret_key_input != ADMIN_SECRET_KEY:
+                flash("Invalid Admin Secret Key. Access denied.")
+                return redirect(url_for("render_signup_page"))
 
         # Form validation: ensure passwords match and are long enough for security
         if password != confirm_password:
@@ -759,13 +768,30 @@ def render_signup_page():
         if len(password) < 8:
             flash("Password must be over 8 characters")
             return redirect(url_for("render_signup_page"))
+        
+        if len(password) > 72:
+            flash("Password cannot be over 72 characters")
+            return redirect(url_for("render_signup_page"))
 
         # Encrypt the password before storing it in the database
         hashed_password = bcrypt.generate_password_hash(password)
 
         con = connection_database(DATABASE)
         cur = con.cursor()
-
+        
+        email_query = ('''
+                    SELECT email FROM users
+                ''')
+        
+        cur.execute(email_query)
+        
+        email_check = cur.fetchone()
+        print(email_check)
+        
+        if email == email_check[0]:
+            flash("Email already has a user")
+            return redirect(url_for("render_signup_page"))
+        
         try:
         
             # Create the main user account record
