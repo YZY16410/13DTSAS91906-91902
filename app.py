@@ -866,13 +866,13 @@ def render_signup_page():
         con = connection_database(DATABASE)
         cur = con.cursor()
         
-        # 1. Ask SQL to search specifically for the submitted email
+        # Query for the submitted email
         email_query = "SELECT email FROM users WHERE email = ?"
-        cur.execute(email_query, (email.strip().lower(),)) # Lowercase to keep checks consistent
+        cur.execute(email_query, (email.strip().lower(),))
 
         email_check = cur.fetchone()
 
-        # 2. If email_check is NOT None, it means a record with that email exists!
+        # Checks if there is any existing emails and if there is then sends error message
         if email_check is not None:
             flash("Email already has a user")
             return redirect(url_for("render_signup_page"))
