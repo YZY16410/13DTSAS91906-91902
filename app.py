@@ -683,7 +683,7 @@ def submit_booking():
     duration = int(request.form['duration'])
     user_id = session.get("user_id")
     
-    # Business logic check: bookings must be exactly 1 or 2 hours
+    # bookings must be exactly 1 or 2 hours
     if duration not in (1,2):
         flash("Only 1 to 2 hr bookings")
         return redirect(url_for("render_booking_page"))
