@@ -63,11 +63,58 @@ def generate_time_slots():
         slots.append(f"{i:02d}:00")
     return slots
 
+def format_swim_time(time):
+    """
+    Ensures a time like 2:27.30000000 or 2:27.3 
+    is always formatted as 2 dp e.g. 2:27.30
+    Cleans up human errors when admin changes times in the database
+    :param time: The time string of the selected swimmer_id
+    :return: A formatted time with specifically 2 dp
+    """
+    time = time.strip()
+    if '.' in time:
+        base, milli_seconds = time.split('.', 1)
+        # Pad with zeros if short (e.g., .3 -> .30), truncate if long (e.g., .3000 -> .30)
+        milli_seconds = milli_seconds.ljust(2, '0')[:2]
+        return f"{base}.{milli_seconds}"
+    else:
+        # If there was no decimal point then, append .00
+        return f"{time}.00"
+    
+    
+def parse_sortable_time(time_str):
+    """
+    Converts everything into the same time format for accurate sorting
+    For example it converts 56.60 into 00:56.60 and 1:23.20 to 01:23.20
+    Fixes text sorting math errors
+    :param time_str: The time string of the swimmer
+    :return: Formatted time for accurate sorting
+    """
+    time = time_str.strip()
+    if ':' not in time:
+        time = "00:" + time  # Adds 00 minutes if it's just seconds so it can sort in minutes.
+    parts = time.split(':')
+    # Fills the minute block with a zero if it's a single digit
+    parts[0] = parts[0].zfill(2)
+    return ":".join(parts)
+
+def get_sortable_key(row_tuple):
+    """
+    Key for for list.sort(). 
+    Takes a database row tuple (result_id, time) and returns 
+    the normalized, sortable time string from index 1.
+    :param row_tuple: The swimmer_id and the time string
+    :return: Time string index 1 of row_tuple
+    """
+    time_str = row_tuple[1]
+    return parse_sortable_time(time_str)
+
+
 @app.route('/dashboard/modify-times', methods=['GET', 'POST'])
 def render_modify_times_page():
     """
     Handles viewing and adding performance records.
-    :return: HTML template for modify_times.html
+    :return: HTML template for modify_times.html, all results of the swimmers, if user is logged in
     """
     # Security gate: Kick guests back to the login page
     if not is_logged_in():
@@ -102,7 +149,7 @@ def render_modify_times_page():
 
     # Fetch data for the display table using JOIN to get data from other tables
     fetch_query = ('''
-        SELECT r.result_id, s.first_name, s.last_name, e.stroke, e.distance, r.time, r.placing, c.name
+        SELECT r.result_id, s.first_name, s.last_name, e.stroke, e.distance, r.time, r.placing, c.name, e.pool_length
         FROM results r
         JOIN swimmers s ON r.swimmer_id = s.swimmer_id
         JOIN events e ON r.event_id = e.event_id
@@ -111,29 +158,16 @@ def render_modify_times_page():
     
     cur.execute(fetch_query)
     all_results = cur.fetchall()
-
-    query_1 = "SELECT swimmer_id, first_name, last_name FROM swimmers"
-    cur.execute(query_1)
-    swimmers_list = cur.fetchall()
-    
-    query_2 = "SELECT event_id, stroke, distance FROM events"
-    cur.execute(query_2)
-    events_list = cur.fetchall()
-    
-    query_3 = "SELECT competition_id, name FROM competitions"
-    cur.execute(query_3)
-    comps_list = cur.fetchall()
+    print(all_results)
 
     conn.close()
     
     return render_template(
         "modify_times.html",
         results=all_results,
-        swimmers=swimmers_list,
-        events=events_list,
-        comps=comps_list,
         logged_in=is_logged_in()
     )
+
 
 @app.route('/delete-result/<int:result_id>')
 def delete_result(result_id):
@@ -158,44 +192,95 @@ def delete_result(result_id):
 @app.route('/edit-result/<int:result_id>', methods=['GET', 'POST'])
 def edit_result(result_id):
     """
-    Updates an existing result record.
+    Updates an existing result record, ensures 2 decimal point precision,
+    and automatically recalculates event rankings for the race field.
     :param result_id: The unique ID of the result to be edited
-    :return: HTML template for edit_result.html or a redirect on success
+    :return: HTML template for edit_result.html or a redirect on success, the result of all swimmers, the result for the swimmer id, if the user is logged in
     """
     conn = connection_database(DATABASE)
     cur = conn.cursor()
 
     # Process user edits for an existing record
     if request.method == 'POST':
-        new_time = request.form.get('time')
-        new_placing = request.form.get('placing')
+        raw_time = request.form.get('time')
         
-        query = ('''
-                UPDATE results SET time = ?, placing = ? 
+        # Changes time string to exactly 2 decimal places
+        clean_time = format_swim_time(raw_time)
+        
+        try:
+            # Fetch event_id and competition_id to find all swimmmers in the same race
+            fetch_info_query = ('''
+                SELECT event_id, competition_id FROM results 
                 WHERE result_id = ?
             ''')
-        
-        cur.execute(query, (new_time, new_placing, result_id))
-        conn.commit()
-        conn.close()
-        flash("Result updated!")
+            cur.execute(fetch_info_query, (result_id,))
+            result_info = cur.fetchone()
+            
+            if result_info:
+                event_id, competition_id = result_info[0], result_info[1]
+                
+                # Update formatted time to the targeted swimmer
+                update_time_query = ('''
+                    UPDATE results SET time = ? 
+                    WHERE result_id = ?
+                ''')
+                cur.execute(update_time_query, (clean_time, result_id))
+                
+                # Fetch all results needed to sort the placing of the race
+                fetch_race_results_query = ('''
+                    SELECT result_id, time FROM results 
+                    WHERE event_id = ? AND competition_id = ?
+                ''')
+                cur.execute(fetch_race_results_query, (event_id, competition_id))
+                all_results = cur.fetchall()
+                
+                # Sort using a specific key to using helper function
+                all_results.sort(key=get_sortable_key)
+                
+                # For loop through the sorted index pool to update new placements
+                for index, row in enumerate(all_results):
+                    new_placing = index + 1
+                    update_placing_query = ('''
+                        UPDATE results SET placing = ? 
+                        WHERE result_id = ?
+                    ''')
+                    cur.execute(update_placing_query, (new_placing, row[0]))
+                
+                conn.commit()
+                flash("Result updated and standings re-ranked successfully!")
+                
+        except Error as e:
+            conn.rollback()
+            print(f"Error recalculating rankings: {e}")
+            flash("An error occurred while updating the data.")
+        finally:
+            conn.close()
+            
         return redirect(url_for('render_modify_times_page'))
 
-    # Load existing data so the user can see what they are editing
+    # Load existing data for admin
     fetch_query = ('''
-                SELECT r.time, r.placing, e.distance, e.stroke, s.first_name, s.last_name
-                FROM results r
-                JOIN events e ON e.event_id = r.event_id
-                JOIN swimmers s ON s.swimmer_id = r.swimmer_id
-                WHERE result_id = ?
-                
-            ''')
+        SELECT r.time, r.placing, e.distance, e.stroke, s.first_name, s.last_name
+        FROM results r
+        JOIN events e ON e.event_id = r.event_id
+        JOIN swimmers s ON r.swimmer_id = s.swimmer_id
+        WHERE result_id = ?
+    ''')
+    
     cur.execute(fetch_query, (result_id,))
     result_data = cur.fetchone()
     print(result_data)
     conn.close()
-    return render_template("edit_result.html", result= result_data, result_id=result_id, logged_in=is_logged_in())
+    
+    return render_template(
+        "edit_result.html", 
+        result=result_data, 
+        result_id=result_id, 
+        logged_in=is_logged_in()
+    )
 
+    
+    
 @app.route('/dashboard/user-bookings/<int:booking_id>')
 def remove_user_bookings(booking_id):
     """
@@ -218,7 +303,7 @@ def remove_user_bookings(booking_id):
         cur.execute(query, (booking_id,))
         conn.commit()
         flash("Booking successfully removed")
-    # Prevent application crashes if a database error occurs during deletion
+    # Prevent crashes incase of database error
     except Error as e:
         print(f"Error:{e}")
         flash("An error occured while removing the booking")
@@ -244,6 +329,7 @@ def remove_swimmer_from_team(swimmer_id):
     conn = connection_database(DATABASE)
     cur = conn.cursor()
     
+    # Deletes swimmer coach relationship
     query = ('''
             DELETE FROM team_members
             WHERE swimmer_id = ? 
@@ -262,7 +348,7 @@ def remove_swimmer_from_team(swimmer_id):
 def manage_team_search():
     """
     Searches for swimmers on the coach's team.
-    :return: HTML template for manage_team.html with filtered results
+    :return: HTML template for manage_team.html with filtered results, if user is logged in, search filter is in use, search query
     """
     if not is_logged_in():
         flash("You must be logged in to manage teams")
@@ -273,7 +359,7 @@ def manage_team_search():
     conn = connection_database(DATABASE)
     cur = conn.cursor()
     
-    # Filter team members by name or club using partial matches (LIKE)
+    # Filter team members by name or club using LIKE 
     query = ('''
             SELECT s.swimmer_id, s.first_name, s.last_name, s.gender, s.club
             FROM swimmers s
@@ -314,7 +400,7 @@ def add_swimmer_to_team(swimmer_id):
     conn = connection_database(DATABASE)
     cur = conn.cursor()
     
-    # Validation query: check if the swimmer is already assigned to this coach
+    # Query to check if the swimmer is already assigned to this coach
     check_query = ('''
                     SELECT * FROM team_members
                     WHERE coach_id = ? 
@@ -350,7 +436,7 @@ def add_swimmer_to_team(swimmer_id):
 def render_add_swimmers_page():
     """
     Lists all available swimmers that can be added to a team.
-    :return: HTML template for add_swimmers.html
+    :return: HTML template for add_swimmers.html, all swimmers in the database, if the user is logged in
     """
     if not is_logged_in():
         flash("You must be logged in to manage teams")
@@ -380,7 +466,7 @@ def render_add_swimmers_page():
 def render_manage_team_page():
     """
     Displays the swimmers currently on the coach's team.
-    :return: HTML template for manage_team.html
+    :return: HTML template for manage_team.html, if user is logged in, swimmers in coach users team
     """
     if not is_logged_in():
         flash("You must be logged in to view your team")
@@ -416,7 +502,7 @@ def render_swim_results_page(swimmer_id):
     """
     Displays performance records for a specific swimmer.
     :param swimmer_id: The unique ID of the swimmer whose results are requested
-    :return: HTML template for swim_results.html
+    :return: HTML template for swim_results.html, if user is logged in, swim results of the swimmer, all results
     """
     if not is_logged_in():
         flash("Please log in first")
@@ -426,19 +512,19 @@ def render_swim_results_page(swimmer_id):
     conn = connection_database(DATABASE)
     cur = conn.cursor()
     
-    # First, retrieve the user's role to determine viewing permissions
+    # Retrieve the user's role to check viewing privileges
     query_1 = ("SELECT role FROM users WHERE user_id = ?")
     
     cur.execute(query_1, (user_id,))
     
     try:
         role = cur.fetchone()[0]
-    # Handle edge cases where a user session exists but the DB record is gone
+    # Handle boundary cases where a user session exists but the database record is gone
     except Error as e:
         flash("User session expired. Please log in again.")
         return redirect(url_for("render_login_page"))
     
-    # If the user is a swimmer, verify they are only trying to see their own results
+    # If the user is a swimmer check they are only trying to see their own results
     if role == 'swimmer':
         query_2 = ("SELECT swimmer_id FROM swimmers WHERE user_id = ?")
         cur.execute(query_2, (user_id,))
@@ -449,12 +535,12 @@ def render_swim_results_page(swimmer_id):
         else:
             return None
         
-        # Block swimmers from snooping on other swimmers' results via URL manipulation
+        # Stops swimmers from checking on other swimmers results using url manipulation
         if swimmer_id != my_id:
             flash("You only have permission to view your own results.")
             return redirect(url_for('render_dashboard_page'))
 
-    # Join results with event and competition data for a complete overview
+    # Join results with event and competition data for entire display
     query = ('''
         SELECT e.stroke, e.distance, r.time, r.placing, c.name, c.date, s.first_name, s.last_name
         FROM results r
@@ -470,7 +556,7 @@ def render_swim_results_page(swimmer_id):
     
     return render_template(
         "swim_results.html", 
-        logged_in=True, 
+        logged_in= is_logged_in(), 
         swim_results=swim_results, 
         role=role
     )
@@ -480,7 +566,7 @@ def render_swim_results_page(swimmer_id):
 def render_user_bookings_page():
     """
     Shows bookings for the current user and all bookings for admins.
-    :return: HTML template for user_bookings.html
+    :return: HTML template for user_bookings.html, if user is logged in or not, user role, all bookings for admin use
     """
     user_id = session.get("user_id")
     print(f"session user_id:{user_id}")
@@ -528,7 +614,7 @@ def render_user_bookings_page():
 def render_dashboard_page():
     """
     Renders the appropriate dashboard based on user role.
-    :return: HTML template for dashboard.html
+    :return: HTML template for dashboard.html, if user is logged in, user role
     """
     if not is_logged_in():
         flash("Error You must be logged in")
@@ -562,7 +648,7 @@ def render_dashboard_page():
 def render_booking_page():
     """
     Shows the lane booking form.
-    :return: HTML template for booking.html
+    :return: HTML template for booking.html, lanes available and all time slots
     """
     if not is_logged_in():
         flash("Error You must be logged in")
@@ -646,6 +732,7 @@ def submit_booking():
                     INSERT INTO bookings (user_id, lane_id, booking_date, time_slot)
                     VALUES (?,?,?,?)
                     ''')
+    
     cur.execute(query_insert, (user_id, lane_id, booking_date, time_slot))
     conn.commit()
     cur.close()
@@ -829,7 +916,7 @@ def render_signup_page():
 def render_contact_page():
     """
     Shows contact information.
-    :return: HTML template for contact.html
+    :return: HTML template for contact.html, if user is logged in
     """
     return render_template(
         'contact.html', 

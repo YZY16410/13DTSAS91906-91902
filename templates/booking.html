@@ -21,7 +21,7 @@
         <div class="form-label"> Lane Number: </div>
         <div class="form-element">
             <select name = "lane_id" required>
-                {# List available lanes or show a default message if none exist #}
+                {# List available lanes or show a message if none exist #}
                 {% for lane in available_lane %}
                     <option value = "{{ lane }}">{{ lane }}</option>
                 {% else %}
@@ -44,7 +44,7 @@
         <div class="form-label"> Start Time: </div>
         <div class="form-element">
             <select id = "start_time" name="start_time" required>
-                {# Loop through valid time slots passed from the backend #}
+                {# For loop through valid time slots passed from the backend #}
                 {% for time in time_slots %}
                     <option value="{{ time }}">{{ time }}</option>
                 {% else %}

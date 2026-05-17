@@ -4,12 +4,12 @@
 
 {% block main %}
 
-{# Logic for Admin view: global oversight of all system bookings #}
+{# Logic for Admin view of all system bookings #}
 {% if role == "admin" %}
 
     <h3>All Lane Bookings</h3>
 
-    {# Only render table if there are bookings present in the system #}
+    {# Only render table if there are existing bookings in the database  #}
     {% if all_bookings %}
         <table class = "booking-table">
             <thead>
@@ -23,7 +23,7 @@
                 </tr>
             </thead>
             <tbody>
-                {# Iterate through all bookings across the entire platform #}
+                {# For loop through all bookings #}
                 {% for booking in all_bookings %}
                 <tr>
                     <td>{{ booking[0] }}</td>
@@ -39,7 +39,7 @@
         </table>
     {% endif %}
 
-{# Logic for Swimmer/Coach view: see personal schedule #}
+{# Logic for Swimmer and Coach view to see personal bookings#}
 {% else %}
 
     <h3>Your Current Lane Bookings</h3>
@@ -70,7 +70,7 @@
             </tbody>
         </table>
 
-    {# Offer a link to the booking page if no active slots are found #}
+    {# Link to the booking page if no active slots are found #}
     {% else %}
         <p>You have no active bookings. <a href = "/booking">Book a Lane here.</a></p>
     {% endif %}

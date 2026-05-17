@@ -3,19 +3,22 @@
 
 {% block main %}
 
-{# Gets data from Flask backend and populates the data #}
+{# Gets data from Flask backend and displays the data #}
 <h2>Modify Data for {{ result[4] }} {{ result[5] }}</h2>
 <p>Event: {{ result[2] }}m {{ result[3] }}</p>
 
 <form method="POST" class="myform">
     <div class="form-group">
         <label class="form-label">Update Time</label>
-        <input type="text" name="time" value="{{ result[0] }}" required>
+        <input type="text" name="time" value="{{ result[0] }}" placeholder = "2 decimal point required" required>
     </div>
+
     <div class="form-group">
-        <label class="form-label">Update Placing</label>
-        <input type="number" name="placing" value="{{ result[1] }}" required>
+        <label class="form-label">Current Placing</label>
+        <input type="number" value="{{ result[1] }}" disabled>
+        <small style="color: #666; display: block; margin-top: 5px;">Placings are automatically recalculated based on performance times.</small>
     </div>
+
     <input type="submit" value="Save Changes">
     {# Renders the modifying times page allowing user to move back #}
     <p><a href="{{ url_for('render_modify_times_page') }}">Cancel and Go Back</a></p>

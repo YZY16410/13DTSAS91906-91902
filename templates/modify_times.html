@@ -11,19 +11,19 @@
             <th>Event</th>
             <th>Time</th>
             <th>Placing</th>
+            <th>Course Type</th>
             <th>Actions</th>
         </tr>
     </thead>
     <tbody>
-        {# Iterate through the list of swim results provided by the backend #}
+        {# For loop through the list of swim results from app.py #}
         {% for r in results %}
         <tr>
-            {# Display swimmer's full name using indices 1 and 2 #}
             <td>{{ r[1] }} {{ r[2] }}</td>
-            {# Format the event display with distance and stroke type #}
             <td>{{ r[4] }}m {{ r[3] }}</td>
             <td>{{ r[5] }}</td>
             <td>{{ r[6] }}</td>
+            <td>{{ r[8] }}</td>
             <td>
                 {# Link to the edit page for a specific result ID #}
                 <a href="{{ url_for('edit_result', result_id=r[0]) }}" style="color: var(--pool-cyan); text-decoration: none; margin-right: 10px;">Edit</a>

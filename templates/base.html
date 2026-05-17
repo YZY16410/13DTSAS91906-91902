@@ -12,7 +12,7 @@
 
 <body>
     
-    {# Handles flashed messages (alerts) from the Flask backend #}
+    {# Handles flashed messages from the Flask backend #}
     {% with messages = get_flashed_messages() %}
         {% if messages %}
             <script>
@@ -28,7 +28,7 @@
         <div class="navbar-brand">SwimSync.</div>
         <div class="navbar-links">
             <a href="/">Home</a>
-            {# Toggle Login/Logout link based on authentication status #}
+            {# Toggle Login/Logout link based on loggedin  status #}
             {% if logged_in == True%}
                 <a href="/logout">Logout ({{session.first_name}})</a>
             {% else %}
@@ -44,12 +44,10 @@
 <div class="container">
     <header>
         <h1>SwimSync</h1>
-        {# Placeholder block for child-page specific headings #}
         <h2>{% block pageheading %}{% endblock %}</h2>
     </header>
 
     <main>
-        {# Placeholder block for child-page specific content #}
         {% block main %}
         {% endblock %}
     </main>
