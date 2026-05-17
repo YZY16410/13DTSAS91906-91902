@@ -833,9 +833,9 @@ def render_signup_page():
     """
     if request.method == 'POST':
         role = request.form.get('role')
-        fname = request.form.get('user_fname')
-        lname = request.form.get('user_lname')
-        email = request.form.get('user_email').lower().strip()
+        fname = request.form.get('user_fname').title().strip()
+        lname = request.form.get('user_lname').title().strip()
+        email = request.form.get('user_email')
         password = request.form.get('user_password')
         confirm_password = request.form.get('user_confirm_password')
         
@@ -866,16 +866,14 @@ def render_signup_page():
         con = connection_database(DATABASE)
         cur = con.cursor()
         
-        email_query = ('''
-                    SELECT email FROM users
-                ''')
-        
-        cur.execute(email_query)
-        
+        # Query for the inputted email
+        email_query = "SELECT email FROM users WHERE email = ?"
+        cur.execute(email_query, (email.strip().lower(),)) # Lowercase to keep checks consistent
+
         email_check = cur.fetchone()
-        print(email_check)
-        
-        if email == email_check[0]:
+
+        # If email is not none then displays error pop up message
+        if email_check is not None:
             flash("Email already has a user")
             return redirect(url_for("render_signup_page"))
         
@@ -888,7 +886,7 @@ def render_signup_page():
             # Retrieve the newly created unique user ID to link other tables
             new_user_id = cur.lastrowid 
 
-            # Every account automatically receives a basic swimmer profile
+            # Every account is set to a swimmer profile
             query_swimmer = "INSERT INTO swimmers (first_name, last_name, user_id, gender, club) VALUES(?,?,?,?,?)"
             cur.execute(query_swimmer, (fname, lname, new_user_id, "TBD", "TBD"))
 
@@ -896,7 +894,7 @@ def render_signup_page():
             flash(f"Welcome {fname}! Your account and swimmer profile are ready.")
             return redirect(url_for("render_login_page"))
 
-        # Handle unique constraint violations (e.g., if the email is already registered)
+        # Handle errors and unexpected cases 
         except Exception as e:
             print(f"Error during signup: {e}")
             flash("An error occurred. The email might already be taken.")
