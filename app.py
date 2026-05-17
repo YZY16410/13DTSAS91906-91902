@@ -833,9 +833,9 @@ def render_signup_page():
     """
     if request.method == 'POST':
         role = request.form.get('role')
-        fname = request.form.get('user_fname')
-        lname = request.form.get('user_lname')
-        email = request.form.get('user_email').lower().strip()
+        fname = request.form.get('user_fname').title().strip()
+        lname = request.form.get('user_lname').title().strip()
+        email = request.form.get('user_email')
         password = request.form.get('user_password')
         confirm_password = request.form.get('user_confirm_password')
         
@@ -866,16 +866,14 @@ def render_signup_page():
         con = connection_database(DATABASE)
         cur = con.cursor()
         
-        email_query = ('''
-                    SELECT email FROM users
-                ''')
-        
-        cur.execute(email_query)
-        
+        # 1. Ask SQL to search specifically for the submitted email
+        email_query = "SELECT email FROM users WHERE email = ?"
+        cur.execute(email_query, (email.strip().lower(),)) # Lowercase to keep checks consistent
+
         email_check = cur.fetchone()
-        print(email_check)
-        
-        if email == email_check[0]:
+
+        # 2. If email_check is NOT None, it means a record with that email exists!
+        if email_check is not None:
             flash("Email already has a user")
             return redirect(url_for("render_signup_page"))
         
